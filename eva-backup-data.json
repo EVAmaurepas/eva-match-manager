@@ -1,0 +1,37 @@
+{
+  "players": [
+    { "id": "1", "name": "Olifoxx", "level": 5, "matchesPlayed": 4 },
+    { "id": "2", "name": "Wex", "level": 5, "matchesPlayed": 4 },
+    { "id": "3", "name": "Ulmeo", "level": 5, "matchesPlayed": 4 },
+    { "id": "4", "name": "Konni", "level": 5, "matchesPlayed": 4 },
+    { "id": "5", "name": "Andy", "level": 5, "matchesPlayed": 4 },
+    { "id": "6", "name": "Alrynor", "level": 5, "matchesPlayed": 4 },
+    { "id": "7", "name": "Fazer", "level": 5, "matchesPlayed": 4 },
+    { "id": "8", "name": "Hydra", "level": 5, "matchesPlayed": 4 },
+    { "id": "9", "name": "Lucie", "level": 5, "matchesPlayed": 4 },
+    { "id": "10", "name": "Kaiser", "level": 5, "matchesPlayed": 4 },
+    { "id": "11", "name": "Vince", "level": 5, "matchesPlayed": 4 },
+    { "id": "12", "name": "Enferno", "level": 5, "matchesPlayed": 4 },
+    { "id": "13", "name": "Aerum", "level": 5, "matchesPlayed": 4 },
+    { "id": "14", "name": "Dosho", "level": 5, "matchesPlayed": 4 },
+    { "id": "15", "name": "Lnx", "level": 5, "matchesPlayed": 4 },
+    { "id": "16", "name": "Micky", "level": 5, "matchesPlayed": 4 },
+    { "id": "17", "name": "Baba", "level": 5, "matchesPlayed": 4 },
+    { "id": "18", "name": "Jilbe", "level": 5, "matchesPlayed": 4 },
+    { "id": "19", "name": "Jarvis", "level": 5, "matchesPlayed": 4 },
+    { "id": "20", "name": "Keywi", "level": 5, "matchesPlayed": 4 }
+  ],
+  "currentMatch": null,
+  "matchHistory": [
+    { "id": "R10", "date": "2026-05-03T11:45:00.000Z", "team1": [{"id":"9","name":"Lucie","level":5}, {"id":"7","name":"Fazer","level":5}, {"id":"12","name":"Enferno","level":5}, {"id":"20","name":"Keywi","level":5}], "team2": [{"id":"1","name":"Olifoxx","level":5}, {"id":"5","name":"Andy","level":5}, {"id":"6","name":"Alrynor","level":5}, {"id":"17","name":"Baba","level":5}] },
+    { "id": "R9", "date": "2026-05-03T11:25:00.000Z", "team1": [{"id":"11","name":"Vince","level":5}, {"id":"16","name":"Micky","level":5}, {"id":"3","name":"Ulmeo","level":5}, {"id":"2","name":"Wex","level":5}], "team2": [{"id":"18","name":"Jilbe","level":5}, {"id":"8","name":"Hydra","level":5}, {"id":"19","name":"Jarvis","level":5}, {"id":"13","name":"Aerum","level":5}] },
+    { "id": "R8", "date": "2026-05-03T11:05:00.000Z", "team1": [{"id":"13","name":"Aerum","level":5}, {"id":"5","name":"Andy","level":5}, {"id":"19","name":"Jarvis","level":5}, {"id":"10","name":"Kaiser","level":5}], "team2": [{"id":"6","name":"Alrynor","level":5}, {"id":"15","name":"Lnx","level":5}, {"id":"4","name":"Konni","level":5}, {"id":"14","name":"Dosho","level":5}] },
+    { "id": "R7", "date": "2026-05-03T10:45:00.000Z", "team1": [{"id":"4","name":"Konni","level":5}, {"id":"12","name":"Enferno","level":5}, {"id":"18","name":"Jilbe","level":5}, {"id":"15","name":"Lnx","level":5}], "team2": [{"id":"20","name":"Keywi","level":5}, {"id":"7","name":"Fazer","level":5}, {"id":"16","name":"Micky","level":5}, {"id":"17","name":"Baba","level":5}] },
+    { "id": "R6", "date": "2026-05-03T10:25:00.000Z", "team1": [{"id":"2","name":"Wex","level":5}, {"id":"9","name":"Lucie","level":5}, {"id":"19","name":"Jarvis","level":5}, {"id":"3","name":"Ulmeo","level":5}], "team2": [{"id":"14","name":"Dosho","level":5}, {"id":"18","name":"Jilbe","level":5}, {"id":"20","name":"Keywi","level":5}, {"id":"10","name":"Kaiser","level":5}] },
+    { "id": "R5", "date": "2026-05-03T10:05:00.000Z", "team1": [{"id":"20","name":"Keywi","level":5}, {"id":"15","name":"Lnx","level":5}, {"id":"12","name":"Enferno","level":5}, {"id":"17","name":"Baba","level":5}], "team2": [{"id":"13","name":"Aerum","level":5}, {"id":"1","name":"Olifoxx","level":5}, {"id":"11","name":"Vince","level":5}, {"id":"8","name":"Hydra","level":5}] },
+    { "id": "R4", "date": "2026-05-03T09:45:00.000Z", "team1": [{"id":"3","name":"Ulmeo","level":5}, {"id":"2","name":"Wex","level":5}, {"id":"10","name":"Kaiser","level":5}, {"id":"16","name":"Micky","level":5}], "team2": [{"id":"4","name":"Konni","level":5}, {"id":"6","name":"Alrynor","level":5}, {"id":"9","name":"Lucie","level":5}, {"id":"14","name":"Dosho","level":5}] },
+    { "id": "R3", "date": "2026-05-03T09:25:00.000Z", "team1": [{"id":"17","name":"Baba","level":5}, {"id":"18","name":"Jilbe","level":5}, {"id":"1","name":"Olifoxx","level":5}, {"id":"7","name":"Fazer","level":5}], "team2": [{"id":"19","name":"Jarvis","level":5}, {"id":"11","name":"Vince","level":5}, {"id":"8","name":"Hydra","level":5}, {"id":"5","name":"Andy","level":5}] },
+    { "id": "R2", "date": "2026-05-03T09:05:00.000Z", "team1": [{"id":"9","name":"Lucie","level":5}, {"id":"10","name":"Kaiser","level":5}, {"id":"11","name":"Vince","level":5}, {"id":"12","name":"Enferno","level":5}], "team2": [{"id":"13","name":"Aerum","level":5}, {"id":"14","name":"Dosho","level":5}, {"id":"15","name":"Lnx","level":5}, {"id":"16","name":"Micky","level":5}] },
+    { "id": "R1", "date": "2026-05-03T08:45:00.000Z", "team1": [{"id":"1","name":"Olifoxx","level":5}, {"id":"2","name":"Wex","level":5}, {"id":"3","name":"Ulmeo","level":5}, {"id":"4","name":"Konni","level":5}], "team2": [{"id":"5","name":"Andy","level":5}, {"id":"6","name":"Alrynor","level":5}, {"id":"7","name":"Fazer","level":5}, {"id":"8","name":"Hydra","level":5}] }
+  ]
+}
