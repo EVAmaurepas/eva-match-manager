@@ -1,6 +1,6 @@
 import Redis from 'ioredis';
 
-const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+const redis = new Redis(process.env.REDIS_URL || process.env.KV_URL || 'redis://localhost:6379');
 
 export default async function handler(request, response) {
   // CORS Headers in case they call it from a different origin locally
