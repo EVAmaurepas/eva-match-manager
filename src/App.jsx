@@ -75,14 +75,29 @@ function App() {
   useEffect(() => {
     if (loading) return;
     
+    // Helper to remove large avatar strings from history to prevent payload too large
+    const cleanMatch = (m) => ({
+      ...m,
+      team1: m.team1.map(({ avatar, ...p }) => p),
+      team2: m.team2.map(({ avatar, ...p }) => p)
+    });
+
+    const cleanedUpcoming = upcomingMatches.map(cleanMatch);
+    const cleanedHistory = matchHistory.map(cleanMatch);
+    const cleanedArchives = archives.map(arch => ({
+      ...arch,
+      upcomingMatches: arch.upcomingMatches.map(cleanMatch),
+      matchHistory: arch.matchHistory.map(cleanMatch)
+    }));
+
     // Save locally always
     localStorage.setItem('eva-players', JSON.stringify(players));
-    localStorage.setItem('eva-upcoming', JSON.stringify(upcomingMatches));
-    localStorage.setItem('eva-history', JSON.stringify(matchHistory));
-    localStorage.setItem('eva-archives', JSON.stringify(archives));
+    localStorage.setItem('eva-upcoming', JSON.stringify(cleanedUpcoming));
+    localStorage.setItem('eva-history', JSON.stringify(cleanedHistory));
+    localStorage.setItem('eva-archives', JSON.stringify(cleanedArchives));
 
     // Try saving to DB
-    const data = { players, upcomingMatches, matchHistory, archives };
+    const data = { players, upcomingMatches: cleanedUpcoming, matchHistory: cleanedHistory, archives: cleanedArchives };
     fetch('/api/state', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -103,20 +118,6 @@ function App() {
 
   const updatePlayer = (id, updates) => {
     setPlayers(players.map(p => p.id === id ? { ...p, ...updates } : p));
-    
-    // Mettre à jour l'icône/nom dans les matchs générés
-    setUpcomingMatches(prev => prev.map(match => ({
-      ...match,
-      team1: match.team1.map(p => p.id === id ? { ...p, ...updates } : p),
-      team2: match.team2.map(p => p.id === id ? { ...p, ...updates } : p)
-    })));
-
-    // Mettre à jour l'icône/nom dans l'historique
-    setMatchHistory(prev => prev.map(match => ({
-      ...match,
-      team1: match.team1.map(p => p.id === id ? { ...p, ...updates } : p),
-      team2: match.team2.map(p => p.id === id ? { ...p, ...updates } : p)
-    })));
   };
 
   const deletePlayer = (id) => {

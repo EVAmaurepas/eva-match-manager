@@ -24,6 +24,7 @@ const getTeamLevel = (team) => team.reduce((sum, p) => sum + p.level, 0);
 
 function MatchMaker({ players, upcomingMatches, setUpcomingMatches, finishMatch, matchHistory, isAdmin }) {
   const MIN_PLAYERS = 8; // 4v4 format
+  const getPlayerAvatar = (id) => players.find(p => p.id === id)?.avatar;
   const [draggedItem, setDraggedItem] = useState(null);
   const [dragOverId, setDragOverId] = useState(null);
   const [showManualModal, setShowManualModal] = useState(false);
@@ -283,8 +284,8 @@ function MatchMaker({ players, upcomingMatches, setUpcomingMatches, finishMatch,
                           >
                             <td className="p-2 text-sm flex items-center gap-2">
                               {isAdmin && <GripVertical size={14} className="opacity-30" />} 
-                              {player.avatar ? (
-                                <img src={player.avatar} alt={player.name} style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }} />
+                              {getPlayerAvatar(player.id) ? (
+                                <img src={getPlayerAvatar(player.id)} alt={player.name} style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }} />
                               ) : (
                                 <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', flexShrink: 0 }}>
                                   {player.name.substring(0, 2).toUpperCase()}
@@ -321,8 +322,8 @@ function MatchMaker({ players, upcomingMatches, setUpcomingMatches, finishMatch,
                           >
                             <td className="p-2 text-sm flex items-center gap-2">
                               {isAdmin && <GripVertical size={14} className="opacity-30" />} 
-                              {player.avatar ? (
-                                <img src={player.avatar} alt={player.name} style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }} />
+                              {getPlayerAvatar(player.id) ? (
+                                <img src={getPlayerAvatar(player.id)} alt={player.name} style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }} />
                               ) : (
                                 <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', flexShrink: 0 }}>
                                   {player.name.substring(0, 2).toUpperCase()}
