@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Play, Flag, Swords, Check, GripVertical, RefreshCw } from 'lucide-react';
+import { Play, Flag, Swords, Check, GripVertical, RefreshCw, PenTool } from 'lucide-react';
 
 // Helper: Get all combinations of size k from an array
 function getCombinations(array, k) {
@@ -26,6 +26,9 @@ function MatchMaker({ players, upcomingMatches, setUpcomingMatches, finishMatch,
   const MIN_PLAYERS = 8; // 4v4 format
   const [draggedItem, setDraggedItem] = useState(null);
   const [dragOverId, setDragOverId] = useState(null);
+  const [showManualModal, setShowManualModal] = useState(false);
+  const [manualTeam1, setManualTeam1] = useState([]);
+  const [manualTeam2, setManualTeam2] = useState([]);
 
   const handleDragStart = (e, player, teamKey, matchIndex) => {
     if (!isAdmin) return;
@@ -192,9 +195,22 @@ function MatchMaker({ players, upcomingMatches, setUpcomingMatches, finishMatch,
             <Swords className="text-primary" /> PROGRAMME DE LA JOURNÉE
           </h2>
           {isAdmin && (
-            <button onClick={generateMatch} className="eva-button">
-              <Play size={20} /> Préparer le match {matchHistory.length + upcomingMatches.length + 1}
-            </button>
+            <div className="flex gap-2">
+              <button 
+                onClick={() => {
+                  setManualTeam1([]);
+                  setManualTeam2([]);
+                  setShowManualModal(true);
+                }} 
+                className="eva-button"
+                style={{ background: 'transparent', borderColor: 'rgba(255, 0, 85, 0.5)' }}
+              >
+                <PenTool size={20} /> Manuel
+              </button>
+              <button onClick={generateMatch} className="eva-button">
+                <Play size={20} /> Préparer le match {matchHistory.length + upcomingMatches.length + 1}
+              </button>
+            </div>
           )}
         </div>
 
@@ -328,6 +344,125 @@ function MatchMaker({ players, upcomingMatches, setUpcomingMatches, finishMatch,
       <div className="text-center text-sm opacity-40">
         * Préparez vos matchs à l'avance pour voir la rotation. Cliquez sur "Terminer" pour valider le résultat et passer au suivant.
       </div>
+
+      {showManualModal && (
+        <div className="modal-overlay">
+          <div className="eva-card" style={{ maxWidth: '800px', width: '90%', maxHeight: '90vh', overflowY: 'auto' }}>
+            <h2 className="text-secondary mb-4">Créer un match manuellement</h2>
+            
+            <div className="grid grid-cols-3 gap-4 md-grid-cols-1">
+              {/* Disponibles */}
+              <div className="p-4 border border-gray-700 rounded bg-black/20">
+                <h3 className="font-bold mb-4 opacity-80 text-sm">JOUEURS DISPONIBLES</h3>
+                <div className="flex flex-col gap-2">
+                  {players.filter(p => !manualTeam1.find(x => x.id === p.id) && !manualTeam2.find(x => x.id === p.id)).map(p => (
+                    <div key={p.id} className="flex justify-between items-center bg-white/5 p-2 rounded">
+                      <div className="flex items-center gap-2 overflow-hidden">
+                        {p.avatar ? (
+                          <img src={p.avatar} alt={p.name} style={{ width: '20px', height: '20px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                        ) : (
+                          <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', flexShrink: 0 }}>
+                            {p.name.substring(0, 2).toUpperCase()}
+                          </div>
+                        )}
+                        <span className="text-sm truncate">{p.name}</span>
+                      </div>
+                      <div className="flex gap-1 flex-shrink-0 ml-2">
+                        <button 
+                          onClick={() => manualTeam1.length < 4 && setManualTeam1([...manualTeam1, p])}
+                          disabled={manualTeam1.length >= 4}
+                          className="px-2 py-1 bg-primary text-black font-bold text-xs rounded disabled:opacity-20 hover:opacity-80 transition"
+                        >B</button>
+                        <button 
+                          onClick={() => manualTeam2.length < 4 && setManualTeam2([...manualTeam2, p])}
+                          disabled={manualTeam2.length >= 4}
+                          className="px-2 py-1 bg-secondary text-white font-bold text-xs rounded disabled:opacity-20 hover:opacity-80 transition"
+                        >R</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Team 1 */}
+              <div className="p-4 border border-primary/30 bg-primary/5 rounded">
+                <h3 className="font-bold text-primary mb-4 text-sm">ÉQUIPE BLEUE ({manualTeam1.length}/4)</h3>
+                <div className="flex flex-col gap-2">
+                  {manualTeam1.map(p => (
+                    <div key={p.id} className="flex justify-between items-center bg-black/40 p-2 rounded border border-primary/20">
+                      <div className="flex items-center gap-2 overflow-hidden">
+                        {p.avatar ? (
+                          <img src={p.avatar} alt={p.name} style={{ width: '20px', height: '20px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                        ) : (
+                          <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', flexShrink: 0 }}>
+                            {p.name.substring(0, 2).toUpperCase()}
+                          </div>
+                        )}
+                        <span className="text-sm truncate">{p.name}</span>
+                      </div>
+                      <button onClick={() => setManualTeam1(manualTeam1.filter(x => x.id !== p.id))} className="text-red-500 hover:text-red-400 text-xs font-bold px-2 py-1">X</button>
+                    </div>
+                  ))}
+                  {manualTeam1.length < 4 && (
+                    <div className="p-2 border border-dashed border-primary/20 text-center opacity-30 text-sm rounded">
+                      En attente...
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Team 2 */}
+              <div className="p-4 border border-secondary/30 bg-secondary/5 rounded">
+                <h3 className="font-bold text-secondary mb-4 text-sm">ÉQUIPE ROUGE ({manualTeam2.length}/4)</h3>
+                <div className="flex flex-col gap-2">
+                  {manualTeam2.map(p => (
+                    <div key={p.id} className="flex justify-between items-center bg-black/40 p-2 rounded border border-secondary/20">
+                      <div className="flex items-center gap-2 overflow-hidden">
+                        {p.avatar ? (
+                          <img src={p.avatar} alt={p.name} style={{ width: '20px', height: '20px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                        ) : (
+                          <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', flexShrink: 0 }}>
+                            {p.name.substring(0, 2).toUpperCase()}
+                          </div>
+                        )}
+                        <span className="text-sm truncate">{p.name}</span>
+                      </div>
+                      <button onClick={() => setManualTeam2(manualTeam2.filter(x => x.id !== p.id))} className="text-red-500 hover:text-red-400 text-xs font-bold px-2 py-1">X</button>
+                    </div>
+                  ))}
+                  {manualTeam2.length < 4 && (
+                    <div className="p-2 border border-dashed border-secondary/20 text-center opacity-30 text-sm rounded">
+                      En attente...
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-2 justify-end mt-6">
+              <button onClick={() => setShowManualModal(false)} className="eva-button" style={{ borderColor: 'rgba(255,255,255,0.2)', color: 'white', background: 'transparent' }}>
+                Annuler
+              </button>
+              <button 
+                onClick={() => {
+                  setUpcomingMatches([...upcomingMatches, {
+                    team1: manualTeam1,
+                    team2: manualTeam2,
+                    levelDiff: Math.abs(getTeamLevel(manualTeam1) - getTeamLevel(manualTeam2)),
+                    id: Date.now().toString()
+                  }]);
+                  setShowManualModal(false);
+                }}
+                disabled={manualTeam1.length !== 4 || manualTeam2.length !== 4}
+                className="eva-button secondary"
+                style={{ opacity: (manualTeam1.length !== 4 || manualTeam2.length !== 4) ? 0.5 : 1 }}
+              >
+                Créer le match
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
