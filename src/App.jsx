@@ -6,10 +6,105 @@ import Archives from './components/Archives';
 import Login from './components/Login';
 import { Gamepad2, Users, History, Download, Upload, LogOut } from 'lucide-react';
 
+// Helper to reconstruct histories and player stats from completed matches
+const rebuildStatsFromHistory = (currentPlayers, completedMatches) => {
+  const playerMap = {};
+  currentPlayers.forEach(p => {
+    playerMap[p.id] = {
+      ...p,
+      matchesPlayed: 0,
+      consecutiveBench: 0,
+      lastPlayedAt: 0
+    };
+  });
+
+  const presence = {};
+  const team = {};
+  const opponent = {};
+
+  const addPair = (matrix, a, b, val) => {
+    if (!matrix[a]) matrix[a] = {};
+    if (!matrix[b]) matrix[b] = {};
+    matrix[a][b] = (matrix[a][b] || 0) + val;
+    matrix[b][a] = (matrix[b][a] || 0) + val;
+  };
+
+  const decay = (matrix) => {
+    Object.keys(matrix).forEach(a => {
+      Object.keys(matrix[a]).forEach(b => {
+        matrix[a][b] *= 0.95;
+      });
+    });
+  };
+
+  // Process matches in chronological order (oldest to newest)
+  const chronological = [...completedMatches].reverse();
+  chronological.forEach(match => {
+    const team1Ids = match.team1.map(p => p.id);
+    const team2Ids = match.team2.map(p => p.id);
+    const participatingIds = [...team1Ids, ...team2Ids];
+    const matchTime = match.date ? new Date(match.date).getTime() : Date.now();
+
+    // Update players
+    Object.keys(playerMap).forEach(id => {
+      const p = playerMap[id];
+      if (p.isPaused) return;
+      if (participatingIds.includes(id)) {
+        p.matchesPlayed += 1;
+        p.consecutiveBench = 0;
+        p.lastPlayedAt = matchTime;
+      } else {
+        p.consecutiveBench += 1;
+      }
+    });
+
+    // Presence
+    for (let i = 0; i < participatingIds.length; i++) {
+      for (let j = i + 1; j < participatingIds.length; j++) {
+        addPair(presence, participatingIds[i], participatingIds[j], 1);
+      }
+    }
+
+    // Team
+    for (let i = 0; i < team1Ids.length; i++) {
+      for (let j = i + 1; j < team1Ids.length; j++) {
+        addPair(team, team1Ids[i], team1Ids[j], 1);
+      }
+    }
+    for (let i = 0; i < team2Ids.length; i++) {
+      for (let j = i + 1; j < team2Ids.length; j++) {
+        addPair(team, team2Ids[i], team2Ids[j], 1);
+      }
+    }
+
+    // Opponent
+    for (let i = 0; i < team1Ids.length; i++) {
+      for (let j = 0; j < team2Ids.length; j++) {
+        addPair(opponent, team1Ids[i], team2Ids[j], 1);
+      }
+    }
+
+    // Decay
+    decay(presence);
+    decay(team);
+    decay(opponent);
+  });
+
+  return {
+    players: Object.values(playerMap),
+    presence,
+    team,
+    opponent
+  };
+};
+
 function App() {
   const [players, setPlayers] = useState([]);
   const [upcomingMatches, setUpcomingMatches] = useState([]);
   const [matchHistory, setMatchHistory] = useState([]);
+  const [presenceHistory, setPresenceHistory] = useState({});
+  const [teamHistory, setTeamHistory] = useState({});
+  const [opponentHistory, setOpponentHistory] = useState({});
   const [archives, setArchives] = useState([]);
   const [activeTab, setActiveTab] = useState('match');
   const [loading, setLoading] = useState(true);
@@ -31,11 +126,30 @@ function App() {
         return res.json();
       })
       .then(data => {
-        if (data.players) setPlayers(data.players);
-        else {
-          const savedPlayers = localStorage.getItem('eva-players');
-          if (savedPlayers) setPlayers(JSON.parse(savedPlayers));
+        let loadedPlayers = data.players || [];
+        const savedPlayers = localStorage.getItem('eva-players');
+        if (!data.players && savedPlayers) {
+          loadedPlayers = JSON.parse(savedPlayers);
         }
+
+        let loadedHistory = data.matchHistory || [];
+        const savedHistory = localStorage.getItem('eva-history');
+        if (!data.matchHistory && savedHistory) {
+          loadedHistory = JSON.parse(savedHistory);
+        }
+
+        const sanitizedPlayers = loadedPlayers.map(p => ({
+          id: p.id,
+          name: p.name,
+          level: p.level ?? p.skill ?? 5,
+          matchesPlayed: p.matchesPlayed ?? p.gamesPlayed ?? 0,
+          consecutiveBench: p.consecutiveBench ?? 0,
+          lastPlayedAt: p.lastPlayedAt ?? 0,
+          isPaused: p.isPaused ?? false,
+          avatar: p.avatar
+        }));
+
+        setPlayers(sanitizedPlayers);
         
         if (data.upcomingMatches) setUpcomingMatches(data.upcomingMatches);
         else if (data.currentMatch) setUpcomingMatches([data.currentMatch]); // migration
@@ -44,16 +158,39 @@ function App() {
           if (savedMatches) setUpcomingMatches(JSON.parse(savedMatches));
         }
         
-        if (data.matchHistory) setMatchHistory(data.matchHistory);
-        else {
-          const savedHistory = localStorage.getItem('eva-history');
-          if (savedHistory) setMatchHistory(JSON.parse(savedHistory));
-        }
+        setMatchHistory(loadedHistory);
 
         if (data.archives) setArchives(data.archives);
         else {
           const savedArchives = localStorage.getItem('eva-archives');
           if (savedArchives) setArchives(JSON.parse(savedArchives));
+        }
+
+        let hasLoadedMatrices = false;
+        if (data.presenceHistory && data.teamHistory && data.opponentHistory) {
+          setPresenceHistory(data.presenceHistory);
+          setTeamHistory(data.teamHistory);
+          setOpponentHistory(data.opponentHistory);
+          hasLoadedMatrices = true;
+        } else {
+          const savedPresence = localStorage.getItem('eva-presence-history');
+          const savedTeam = localStorage.getItem('eva-team-history');
+          const savedOpponent = localStorage.getItem('eva-opponent-history');
+          if (savedPresence && savedTeam && savedOpponent) {
+            setPresenceHistory(JSON.parse(savedPresence));
+            setTeamHistory(JSON.parse(savedTeam));
+            setOpponentHistory(JSON.parse(savedOpponent));
+            hasLoadedMatrices = true;
+          }
+        }
+
+        // Auto-rebuild matrices if we have a match history but no matrices are saved
+        if (!hasLoadedMatrices && loadedHistory.length > 0) {
+          const { players: updatedPlayers, presence, team, opponent } = rebuildStatsFromHistory(sanitizedPlayers, loadedHistory);
+          setPlayers(updatedPlayers);
+          setPresenceHistory(presence);
+          setTeamHistory(team);
+          setOpponentHistory(opponent);
         }
 
         setLoading(false);
@@ -64,10 +201,45 @@ function App() {
         const savedMatches = localStorage.getItem('eva-upcoming');
         const savedHistory = localStorage.getItem('eva-history');
         const savedArchives = localStorage.getItem('eva-archives');
-        if (savedPlayers) setPlayers(JSON.parse(savedPlayers));
+        const savedPresence = localStorage.getItem('eva-presence-history');
+        const savedTeam = localStorage.getItem('eva-team-history');
+        const savedOpponent = localStorage.getItem('eva-opponent-history');
+        
+        let loadedPlayers = savedPlayers ? JSON.parse(savedPlayers) : [];
+        let loadedHistory = savedHistory ? JSON.parse(savedHistory) : [];
+
+        const sanitizedPlayers = loadedPlayers.map(p => ({
+          id: p.id,
+          name: p.name,
+          level: p.level ?? p.skill ?? 5,
+          matchesPlayed: p.matchesPlayed ?? p.gamesPlayed ?? 0,
+          consecutiveBench: p.consecutiveBench ?? 0,
+          lastPlayedAt: p.lastPlayedAt ?? 0,
+          isPaused: p.isPaused ?? false,
+          avatar: p.avatar
+        }));
+
+        setPlayers(sanitizedPlayers);
         if (savedMatches) setUpcomingMatches(JSON.parse(savedMatches));
-        if (savedHistory) setMatchHistory(JSON.parse(savedHistory));
+        setMatchHistory(loadedHistory);
         if (savedArchives) setArchives(JSON.parse(savedArchives));
+        
+        let hasLoadedMatrices = false;
+        if (savedPresence && savedTeam && savedOpponent) {
+          setPresenceHistory(JSON.parse(savedPresence));
+          setTeamHistory(JSON.parse(savedTeam));
+          setOpponentHistory(JSON.parse(savedOpponent));
+          hasLoadedMatrices = true;
+        }
+
+        if (!hasLoadedMatrices && loadedHistory.length > 0) {
+          const { players: updatedPlayers, presence, team, opponent } = rebuildStatsFromHistory(sanitizedPlayers, loadedHistory);
+          setPlayers(updatedPlayers);
+          setPresenceHistory(presence);
+          setTeamHistory(team);
+          setOpponentHistory(opponent);
+        }
+
         setLoading(false);
       });
   }, []);
@@ -95,15 +267,26 @@ function App() {
     localStorage.setItem('eva-upcoming', JSON.stringify(cleanedUpcoming));
     localStorage.setItem('eva-history', JSON.stringify(cleanedHistory));
     localStorage.setItem('eva-archives', JSON.stringify(cleanedArchives));
+    localStorage.setItem('eva-presence-history', JSON.stringify(presenceHistory));
+    localStorage.setItem('eva-team-history', JSON.stringify(teamHistory));
+    localStorage.setItem('eva-opponent-history', JSON.stringify(opponentHistory));
 
     // Try saving to DB
-    const data = { players, upcomingMatches: cleanedUpcoming, matchHistory: cleanedHistory, archives: cleanedArchives };
+    const data = { 
+      players, 
+      upcomingMatches: cleanedUpcoming, 
+      matchHistory: cleanedHistory, 
+      archives: cleanedArchives,
+      presenceHistory,
+      teamHistory,
+      opponentHistory
+    };
     fetch('/api/state', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     }).catch(() => {}); // ignore error locally
-  }, [players, upcomingMatches, matchHistory, archives, loading]);
+  }, [players, upcomingMatches, matchHistory, archives, presenceHistory, teamHistory, opponentHistory, loading]);
 
   const addPlayer = (name, level) => {
     const newPlayer = {
@@ -111,6 +294,8 @@ function App() {
       name,
       level: parseInt(level),
       matchesPlayed: 0,
+      consecutiveBench: 0,
+      lastPlayedAt: 0,
       isPaused: false
     };
     setPlayers([...players, newPlayer]);
@@ -128,18 +313,80 @@ function App() {
     if (upcomingMatches.length === 0) return;
     
     const match = upcomingMatches[0];
-    const participatingIds = [
-      ...match.team1.map(p => p.id),
-      ...match.team2.map(p => p.id)
-    ];
+    const team1Ids = match.team1.map(p => p.id);
+    const team2Ids = match.team2.map(p => p.id);
+    const participatingIds = [...team1Ids, ...team2Ids];
 
-    setPlayers(players.map(p => {
+    // 1. Update player stats
+    const updatedPlayers = players.map(p => {
+      if (p.isPaused) return p;
       if (participatingIds.includes(p.id)) {
-        return { ...p, matchesPlayed: p.matchesPlayed + 1 };
+        return {
+          ...p,
+          matchesPlayed: p.matchesPlayed + 1,
+          consecutiveBench: 0,
+          lastPlayedAt: Date.now()
+        };
+      } else {
+        return {
+          ...p,
+          consecutiveBench: p.consecutiveBench + 1
+        };
       }
-      return p;
-    }));
+    });
 
+    // 2. Update matrices
+    const newPresence = { ...presenceHistory };
+    const newTeam = { ...teamHistory };
+    const newOpponent = { ...opponentHistory };
+
+    const addPair = (matrix, a, b, val) => {
+      if (!matrix[a]) matrix[a] = {};
+      if (!matrix[b]) matrix[b] = {};
+      matrix[a][b] = (matrix[a][b] || 0) + val;
+      matrix[b][a] = (matrix[b][a] || 0) + val;
+    };
+
+    const decay = (matrix) => {
+      Object.keys(matrix).forEach(a => {
+        Object.keys(matrix[a]).forEach(b => {
+          matrix[a][b] *= 0.95;
+        });
+      });
+    };
+
+    // Presence
+    for (let i = 0; i < participatingIds.length; i++) {
+      for (let j = i + 1; j < participatingIds.length; j++) {
+        addPair(newPresence, participatingIds[i], participatingIds[j], 1);
+      }
+    }
+
+    // Team
+    for (let i = 0; i < team1Ids.length; i++) {
+      for (let j = i + 1; j < team1Ids.length; j++) {
+        addPair(newTeam, team1Ids[i], team1Ids[j], 1);
+      }
+    }
+    for (let i = 0; i < team2Ids.length; i++) {
+      for (let j = i + 1; j < team2Ids.length; j++) {
+        addPair(newTeam, team2Ids[i], team2Ids[j], 1);
+      }
+    }
+
+    // Opponent
+    for (let i = 0; i < team1Ids.length; i++) {
+      for (let j = 0; j < team2Ids.length; j++) {
+        addPair(newOpponent, team1Ids[i], team2Ids[j], 1);
+      }
+    }
+
+    // Decay
+    decay(newPresence);
+    decay(newTeam);
+    decay(newOpponent);
+
+    // 3. Save match record
     const newMatchRecord = {
       id: Date.now().toString(),
       date: new Date().toISOString(),
@@ -147,31 +394,27 @@ function App() {
       team2: match.team2
     };
     
+    setPlayers(updatedPlayers);
+    setPresenceHistory(newPresence);
+    setTeamHistory(newTeam);
+    setOpponentHistory(newOpponent);
     setMatchHistory([newMatchRecord, ...matchHistory]);
     setUpcomingMatches(upcomingMatches.slice(1));
   };
 
   const deleteFinishedMatch = (matchId) => {
-    const matchToDelete = matchHistory.find(m => m.id === matchId);
-    if (!matchToDelete) return;
-
-    const participatingIds = [
-      ...matchToDelete.team1.map(p => p.id),
-      ...matchToDelete.team2.map(p => p.id)
-    ];
-
-    setPlayers(players.map(p => {
-      if (participatingIds.includes(p.id)) {
-        return { ...p, matchesPlayed: Math.max(0, p.matchesPlayed - 1) };
-      }
-      return p;
-    }));
-
-    setMatchHistory(matchHistory.filter(m => m.id !== matchId));
+    const newHistory = matchHistory.filter(m => m.id !== matchId);
+    const { players: updatedPlayers, presence, team, opponent } = rebuildStatsFromHistory(players, newHistory);
+    
+    setPlayers(updatedPlayers);
+    setPresenceHistory(presence);
+    setTeamHistory(team);
+    setOpponentHistory(opponent);
+    setMatchHistory(newHistory);
   };
 
   const exportData = () => {
-    const data = { players, upcomingMatches, matchHistory, archives };
+    const data = { players, upcomingMatches, matchHistory, archives, presenceHistory, teamHistory, opponentHistory };
     const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -193,6 +436,14 @@ function App() {
         else if (data.currentMatch) setUpcomingMatches([data.currentMatch]);
         if (data.matchHistory) setMatchHistory(data.matchHistory);
         if (data.archives) setArchives(data.archives);
+        
+        // Dynamic rebuild on import
+        const { players: updatedPlayers, presence, team, opponent } = rebuildStatsFromHistory(data.players || [], data.matchHistory || []);
+        setPlayers(updatedPlayers);
+        setPresenceHistory(presence);
+        setTeamHistory(team);
+        setOpponentHistory(opponent);
+
         alert("Données importées avec succès !");
       } catch (err) {
         alert("Erreur lors de l'importation du fichier JSON.");
@@ -228,6 +479,9 @@ function App() {
     setPlayers([]);
     setUpcomingMatches([]);
     setMatchHistory([]);
+    setPresenceHistory({});
+    setTeamHistory({});
+    setOpponentHistory({});
     setShowResetModal(false);
     setArchiveName('');
     setActiveTab('players');
@@ -340,6 +594,9 @@ function App() {
             setUpcomingMatches={setUpcomingMatches}
             finishMatch={finishMatch}
             matchHistory={matchHistory}
+            presenceHistory={presenceHistory}
+            teamHistory={teamHistory}
+            opponentHistory={opponentHistory}
             isAdmin={userRole === 'admin'}
           />
         )}

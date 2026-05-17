@@ -162,7 +162,14 @@ function PlayerList({ players, onAdd, onUpdate, onDelete, isAdmin }) {
                         )}
                       </td>
                     )}
-                    <td>{player.matchesPlayed}</td>
+                    <td>
+                      <div>{player.matchesPlayed}</div>
+                      {player.consecutiveBench > 0 && !player.isPaused && (
+                        <div className="text-xs text-secondary mt-0.5" style={{ fontSize: '0.75rem', opacity: 0.8 }}>
+                          ⏳ Banc : {player.consecutiveBench}
+                        </div>
+                      )}
+                    </td>
                     <td className="text-right flex gap-2 justify-end items-center" style={{ minHeight: '48px' }}>
                       {isAdmin && (
                         <>

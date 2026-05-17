@@ -22,7 +22,17 @@ function getCombinations(array, k) {
 // Helper: calculate total level of a team
 const getTeamLevel = (team) => team.reduce((sum, p) => sum + p.level, 0);
 
-function MatchMaker({ players, upcomingMatches, setUpcomingMatches, finishMatch, matchHistory, isAdmin }) {
+function MatchMaker({ 
+  players, 
+  upcomingMatches, 
+  setUpcomingMatches, 
+  finishMatch, 
+  matchHistory, 
+  presenceHistory, 
+  teamHistory, 
+  opponentHistory, 
+  isAdmin 
+}) {
   const MIN_PLAYERS = 8; // 4v4 format
   const getPlayerAvatar = (id) => players.find(p => p.id === id)?.avatar;
   const [draggedItem, setDraggedItem] = useState(null);
@@ -95,63 +105,200 @@ function MatchMaker({ players, upcomingMatches, setUpcomingMatches, finishMatch,
     setUpcomingMatches(upcomingMatches.filter((_, i) => i !== index));
   };
 
-  const createMatchForUpcomingList = (baseUpcomingMatches) => {
-    const combinedHistory = [...baseUpcomingMatches].reverse().concat(matchHistory);
+  const getVirtualState = (baseUpcomingMatches) => {
+    const virtualPlayers = players.map(p => ({
+      ...p,
+      level: p.level ?? p.skill ?? 5,
+      matchesPlayed: p.matchesPlayed ?? p.gamesPlayed ?? 0,
+      consecutiveBench: p.consecutiveBench ?? 0,
+      lastPlayedAt: p.lastPlayedAt ?? 0,
+      isPaused: p.isPaused ?? false
+    }));
 
-    const activePlayers = players.filter(p => !p.isPaused);
-    const playerStats = activePlayers.map(player => {
-      let consecutive = 0;
-      let sinceLast = 0;
-      
-      let virtualMatchesPlayed = player.matchesPlayed;
-      baseUpcomingMatches.forEach(m => {
-        if ([...m.team1, ...m.team2].some(p => p.id === player.id)) {
-          virtualMatchesPlayed++;
+    const virtualPresence = JSON.parse(JSON.stringify(presenceHistory || {}));
+    const virtualTeam = JSON.parse(JSON.stringify(teamHistory || {}));
+    const virtualOpponent = JSON.parse(JSON.stringify(opponentHistory || {}));
+
+    const addPair = (matrix, a, b, val) => {
+      if (!matrix[a]) matrix[a] = {};
+      if (!matrix[b]) matrix[b] = {};
+      matrix[a][b] = (matrix[a][b] || 0) + val;
+      matrix[b][a] = (matrix[b][a] || 0) + val;
+    };
+
+    const decay = (matrix) => {
+      Object.keys(matrix).forEach(a => {
+        Object.keys(matrix[a]).forEach(b => {
+          matrix[a][b] *= 0.95;
+        });
+      });
+    };
+
+    baseUpcomingMatches.forEach(match => {
+      const team1Ids = match.team1.map(p => p.id);
+      const team2Ids = match.team2.map(p => p.id);
+      const participatingIds = [...team1Ids, ...team2Ids];
+      const matchTime = Date.now();
+
+      virtualPlayers.forEach(p => {
+        if (p.isPaused) return;
+        if (participatingIds.includes(p.id)) {
+          p.matchesPlayed = (p.matchesPlayed || 0) + 1;
+          p.consecutiveBench = 0;
+          p.lastPlayedAt = matchTime;
+        } else {
+          p.consecutiveBench = (p.consecutiveBench || 0) + 1;
         }
       });
 
-      for (let i = 0; i < combinedHistory.length; i++) {
-        const match = combinedHistory[i];
-        const played = [...match.team1, ...match.team2].some(p => p.id === player.id);
-        if (played) consecutive++;
-        else break;
+      // Presence
+      for (let i = 0; i < participatingIds.length; i++) {
+        for (let j = i + 1; j < participatingIds.length; j++) {
+          addPair(virtualPresence, participatingIds[i], participatingIds[j], 1);
+        }
       }
 
-      for (let i = 0; i < combinedHistory.length; i++) {
-        const match = combinedHistory[i];
-        const played = [...match.team1, ...match.team2].some(p => p.id === player.id);
-        if (!played) sinceLast++;
-        else break;
+      // Team
+      for (let i = 0; i < team1Ids.length; i++) {
+        for (let j = i + 1; j < team1Ids.length; j++) {
+          addPair(virtualTeam, team1Ids[i], team1Ids[j], 1);
+        }
+      }
+      for (let i = 0; i < team2Ids.length; i++) {
+        for (let j = i + 1; j < team2Ids.length; j++) {
+          addPair(virtualTeam, team2Ids[i], team2Ids[j], 1);
+        }
       }
 
-      let priorityScore = virtualMatchesPlayed;
-      
-      if (sinceLast >= 3) priorityScore -= 500;
-      else if (sinceLast === 2) priorityScore -= 50;
-      
-      if (consecutive >= 3) priorityScore += 500;
-      else if (consecutive === 2) priorityScore += 50;
+      // Opponent
+      for (let i = 0; i < team1Ids.length; i++) {
+        for (let j = 0; j < team2Ids.length; j++) {
+          addPair(virtualOpponent, team1Ids[i], team2Ids[j], 1);
+        }
+      }
 
-      if (consecutive > 0) priorityScore += 5;
-
-      return { ...player, priorityScore };
+      decay(virtualPresence);
+      decay(virtualTeam);
+      decay(virtualOpponent);
     });
 
-    const shuffled = [...playerStats].sort(() => 0.5 - Math.random());
-    const sorted = shuffled.sort((a, b) => a.priorityScore - b.priorityScore);
-    const selectedPlayers = sorted.slice(0, 8);
+    return {
+      players: virtualPlayers,
+      presenceHistory: virtualPresence,
+      teamHistory: virtualTeam,
+      opponentHistory: virtualOpponent
+    };
+  };
 
-    const team1Combinations = getCombinations(selectedPlayers, 4);
+  const getTimeSinceLastMatch = (lastPlayedAt) => {
+    if (!lastPlayedAt) {
+      return 120; // 2 hours boost for players who have never played
+    }
+    const diffMs = Date.now() - lastPlayedAt;
+    const diffMins = diffMs / 60000;
+    return Math.max(0, diffMins);
+  };
+
+  const createMatchForUpcomingList = (baseUpcomingMatches) => {
+    const W_BENCH = 10;
+    const W_RECENCY = 1;
+    const W_TOTAL_GAMES = 3;
+    const W_MATCH_REPEAT = 4;
+    const W_TEAM_REPEAT = 5;
+    const W_OPPONENT_REPEAT = 2;
+    const W_SKILL_BALANCE = 6;
+
+    const virtualState = getVirtualState(baseUpcomingMatches);
+    const virtualPlayers = virtualState.players;
+    const virtualPresence = virtualState.presenceHistory;
+    const virtualTeam = virtualState.teamHistory;
+    const virtualOpponent = virtualState.opponentHistory;
+
+    const activePlayers = virtualPlayers.filter(p => !p.isPaused);
+    if (activePlayers.length < MIN_PLAYERS) {
+      throw new Error("Pas assez de joueurs actifs");
+    }
+
+    // Step 1: Calculate individual score with slight randomization to break ties naturally
+    const playerScores = activePlayers.map(p => {
+      const timeSince = getTimeSinceLastMatch(p.lastPlayedAt);
+      const score =
+        W_BENCH * p.consecutiveBench +
+        W_RECENCY * timeSince -
+        W_TOTAL_GAMES * p.matchesPlayed +
+        (Math.random() - 0.5);
+      return { ...p, priorityScore: score };
+    });
+
+    // Step 2: Select group of 8 players
+    const sortedPlayers = [...playerScores].sort((a, b) => b.priorityScore - a.priorityScore);
+    const candidatePool = sortedPlayers.slice(0, Math.min(12, sortedPlayers.length));
+
+    // Test combinations of 8
+    const possibleGroups = getCombinations(candidatePool, 8);
+    let bestGroup = null;
+    let bestGroupScore = -Infinity;
+
+    possibleGroups.forEach(group => {
+      const fairnessScore = group.reduce((sum, p) => sum + p.priorityScore, 0);
+      
+      let repetitionPenalty = 0;
+      for (let i = 0; i < group.length; i++) {
+        for (let j = i + 1; j < group.length; j++) {
+          const aId = group[i].id;
+          const bId = group[j].id;
+          repetitionPenalty += (virtualPresence[aId]?.[bId] || 0);
+        }
+      }
+
+      const groupScore = fairnessScore - W_MATCH_REPEAT * repetitionPenalty;
+
+      if (groupScore > bestGroupScore) {
+        bestGroupScore = groupScore;
+        bestGroup = group;
+      }
+    });
+
+    // Step 3: Create teams of 4v4
+    const team1Combinations = getCombinations(bestGroup, 4);
     let bestTeam1 = null;
     let bestTeam2 = null;
-    let minDifference = Infinity;
+    let bestTeamScore = -Infinity;
 
     team1Combinations.forEach(t1 => {
       const t1Ids = t1.map(p => p.id);
-      const t2 = selectedPlayers.filter(p => !t1Ids.includes(p.id));
-      const diff = Math.abs(getTeamLevel(t1) - getTeamLevel(t2));
-      if (diff < minDifference) {
-        minDifference = diff;
+      const t2 = bestGroup.filter(p => !t1Ids.includes(p.id));
+
+      const balanceScore = -Math.abs(getTeamLevel(t1) - getTeamLevel(t2));
+
+      // Teammate penalty
+      let teammatePenalty = 0;
+      for (let i = 0; i < t1.length; i++) {
+        for (let j = i + 1; j < t1.length; j++) {
+          teammatePenalty += (virtualTeam[t1[i].id]?.[t1[j].id] || 0);
+        }
+      }
+      for (let i = 0; i < t2.length; i++) {
+        for (let j = i + 1; j < t2.length; j++) {
+          teammatePenalty += (virtualTeam[t2[i].id]?.[t2[j].id] || 0);
+        }
+      }
+
+      // Opponent penalty
+      let opponentPenalty = 0;
+      for (let i = 0; i < t1.length; i++) {
+        for (let j = 0; j < t2.length; j++) {
+          opponentPenalty += (virtualOpponent[t1[i].id]?.[t2[j].id] || 0);
+        }
+      }
+
+      const teamScore =
+        W_SKILL_BALANCE * balanceScore -
+        W_TEAM_REPEAT * teammatePenalty -
+        W_OPPONENT_REPEAT * opponentPenalty;
+
+      if (teamScore > bestTeamScore) {
+        bestTeamScore = teamScore;
         bestTeam1 = t1;
         bestTeam2 = t2;
       }
@@ -160,7 +307,7 @@ function MatchMaker({ players, upcomingMatches, setUpcomingMatches, finishMatch,
     return {
       team1: bestTeam1,
       team2: bestTeam2,
-      levelDiff: minDifference,
+      levelDiff: Math.abs(getTeamLevel(bestTeam1) - getTeamLevel(bestTeam2)),
       id: Date.now().toString()
     };
   };

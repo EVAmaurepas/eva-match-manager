@@ -31,7 +31,11 @@ C'est ici que vous enregistrez les participants.
 
 Le cœur de l'application.
 
-- **Génération :** L'algorithme sélectionne les joueurs prioritaires (ceux qui ont le moins joué) et crée deux équipes équilibrées en fonction de leurs niveaux.
+- **Génération Avancée (Match après Match) :** L'algorithme de matchmaking 4v4 optimise à la fois le temps de jeu et la variété des rencontres pour briser les "pools de joueurs fixes". Il fonctionne en 4 étapes :
+  1. **Score Individuel de Priorité :** Calcule un score pour chaque joueur combinant son attente consécutive sur le banc (`consecutiveBench` avec poids 10), le temps écoulé depuis sa dernière participation (`timeSinceLastMatch` avec poids 1), son volume total de jeu (`gamesPlayed` avec poids -3), et un léger bruit aléatoire pour conserver un roulement naturel.
+  2. **Sélection intelligente du groupe de 8 :** Identifie les 12 meilleurs joueurs candidats, puis teste les 495 combinaisons de 8 joueurs possibles pour retenir celle qui maximise la priorité collective tout en minimisant la répétition des mêmes joueurs ensemble (historique de co-présence en match).
+  3. **Création d'Équipes 4v4 Optimales :** Divise les 8 joueurs choisis en deux équipes en équilibrant leur niveau global (force des équipes avec poids 6), tout en minimisant le fait de rejouer avec les mêmes coéquipiers (historique des coéquipiers avec poids -5) ou contre les mêmes adversaires (historique des adversaires avec poids -2).
+  4. **Atténuation de l'Historique (Decay) :** À chaque validation de match, les historiques d'affinités sont multipliés par `0.95` pour accorder la priorité au brassage récent et éviter que le système ne se fige dans le temps.
 - **File d'attente :** Vous pouvez préparer plusieurs matchs à l'avance.
 - **Validation :** Cliquer sur "Terminer le match" archive la rencontre dans l'historique et met à jour le compteur des joueurs.
 
