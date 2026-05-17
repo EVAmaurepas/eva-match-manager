@@ -37,6 +37,7 @@ Le cœur de l'application.
   3. **Création d'Équipes 4v4 Optimales :** Divise les 8 joueurs choisis en deux équipes en équilibrant leur niveau global (force des équipes avec poids 6), tout en minimisant le fait de rejouer avec les mêmes coéquipiers (historique des coéquipiers avec poids -5) ou contre les mêmes adversaires (historique des adversaires avec poids -2).
   4. **Atténuation de l'Historique (Decay) :** À chaque validation de match, les historiques d'affinités sont multipliés par `0.95` pour accorder la priorité au brassage récent et éviter que le système ne se fige dans le temps.
 - **File d'attente :** Vous pouvez préparer plusieurs matchs à l'avance.
+- **Remplacement Manuel :** Si un joueur présent dans un match généré doit être remplacé (ex : fatigue ou indisponibilité), l'administrateur peut cliquer sur l'icône d'échange ($\rightleftarrows$) à côté de son nom. Une fenêtre affiche alors tous les joueurs actuellement sur le banc (avec leurs statistiques de jeu et temps d'attente), permettant d'effectuer le remplacement en un clic tout en recalculant automatiquement l'équilibrage de force des équipes.
 - **Validation :** Cliquer sur "Terminer le match" archive la rencontre dans l'historique et met à jour le compteur des joueurs.
 
 ### 3. Historique

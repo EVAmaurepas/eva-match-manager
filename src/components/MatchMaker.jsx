@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Play, Flag, Swords, Check, GripVertical, RefreshCw, PenTool, Plus } from 'lucide-react';
+import { Play, Flag, Swords, Check, GripVertical, RefreshCw, PenTool, Plus, ArrowLeftRight } from 'lucide-react';
 
 // Helper: Get all combinations of size k from an array
 function getCombinations(array, k) {
@@ -40,6 +40,7 @@ function MatchMaker({
   const [showManualModal, setShowManualModal] = useState(false);
   const [manualTeam1, setManualTeam1] = useState([]);
   const [manualTeam2, setManualTeam2] = useState([]);
+  const [substitutingPlayer, setSubstitutingPlayer] = useState(null);
 
   const handleDragStart = (e, player, teamKey, matchIndex) => {
     if (!isAdmin) return;
@@ -103,6 +104,26 @@ function MatchMaker({
 
   const removeMatch = (index) => {
     setUpcomingMatches(upcomingMatches.filter((_, i) => i !== index));
+  };
+
+  const handleSubstitute = (benchPlayer) => {
+    if (!substitutingPlayer) return;
+    const { player: targetPlayer, teamKey, matchIndex } = substitutingPlayer;
+
+    const newUpcoming = [...upcomingMatches];
+    const match = { ...newUpcoming[matchIndex] };
+
+    // Replace the player in the correct team
+    match[teamKey] = match[teamKey].map(p => 
+      p.id === targetPlayer.id ? benchPlayer : p
+    );
+
+    // Recalculate level difference
+    match.levelDiff = Math.abs(getTeamLevel(match.team1) - getTeamLevel(match.team2));
+
+    newUpcoming[matchIndex] = match;
+    setUpcomingMatches(newUpcoming);
+    setSubstitutingPlayer(null);
   };
 
   const getVirtualState = (baseUpcomingMatches) => {
@@ -438,7 +459,20 @@ function MatchMaker({
                                   {player.name.substring(0, 2).toUpperCase()}
                                 </div>
                               )}
-                              {player.name}
+                              <span>{player.name}</span>
+                              {isAdmin && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSubstitutingPlayer({ player, teamKey: 'team1', matchIndex: index });
+                                  }}
+                                  className="ml-auto text-secondary hover:text-white transition-colors p-1 flex items-center justify-center opacity-40 hover:opacity-100"
+                                  title="Remplacer ce joueur"
+                                  style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}
+                                >
+                                  <ArrowLeftRight size={12} />
+                                </button>
+                              )}
                             </td>
                             <td className="p-2 text-right text-xs opacity-60">{isAdmin && `Niv. ${player.level}`}</td>
                           </tr>
@@ -476,7 +510,20 @@ function MatchMaker({
                                   {player.name.substring(0, 2).toUpperCase()}
                                 </div>
                               )}
-                              {player.name}
+                              <span>{player.name}</span>
+                              {isAdmin && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSubstitutingPlayer({ player, teamKey: 'team2', matchIndex: index });
+                                  }}
+                                  className="ml-auto text-secondary hover:text-white transition-colors p-1 flex items-center justify-center opacity-40 hover:opacity-100"
+                                  title="Remplacer ce joueur"
+                                  style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}
+                                >
+                                  <ArrowLeftRight size={12} />
+                                </button>
+                              )}
                             </td>
                             <td className="p-2 text-right text-xs opacity-60">{isAdmin && `Niv. ${player.level}`}</td>
                           </tr>
@@ -618,6 +665,70 @@ function MatchMaker({
                 style={{ opacity: (manualTeam1.length !== 4 || manualTeam2.length !== 4) ? 0.5 : 1 }}
               >
                 Créer le match
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {substitutingPlayer && (
+        <div className="modal-overlay">
+          <div className="eva-card" style={{ maxWidth: '500px', width: '95%' }}>
+            <h2 className="text-secondary mb-2 flex items-center gap-2">
+              <ArrowLeftRight className="text-secondary" /> REMPLACER UN JOUEUR
+            </h2>
+            <p className="mb-4 text-sm opacity-80">
+              Sélectionnez un joueur du banc pour remplacer <strong className="text-primary">{substitutingPlayer.player.name}</strong> dans le match.
+            </p>
+            
+            <div className="flex flex-col gap-2 max-h-[50vh] overflow-y-auto mb-6 pr-1">
+              {(() => {
+                const match = upcomingMatches[substitutingPlayer.matchIndex];
+                if (!match) return null;
+                const playingIds = [...match.team1.map(p => p.id), ...match.team2.map(p => p.id)];
+                const benchPlayers = players.filter(p => !p.isPaused && !playingIds.includes(p.id));
+
+                if (benchPlayers.length === 0) {
+                  return <p className="text-center py-4 opacity-50 italic text-sm">Aucun joueur n'est disponible sur le banc.</p>;
+                }
+
+                return benchPlayers.map(p => (
+                  <div 
+                    key={p.id} 
+                    onClick={() => handleSubstitute(p)}
+                    className="flex justify-between items-center bg-white/5 hover:bg-primary/10 border border-transparent hover:border-primary/20 p-2.5 rounded cursor-pointer transition-all"
+                  >
+                    <div className="flex items-center gap-3 overflow-hidden">
+                      {p.avatar ? (
+                        <img src={p.avatar} alt={p.name} style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                      ) : (
+                        <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', flexShrink: 0 }}>
+                          {p.name.substring(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="flex flex-col text-left">
+                        <span className="text-sm font-bold truncate">{p.name}</span>
+                        {p.consecutiveBench > 0 && (
+                          <span className="text-xs text-secondary opacity-85">⏳ Banc : {p.consecutiveBench} match{p.consecutiveBench > 1 ? 'es' : ''}</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-right text-xs opacity-75 flex flex-col items-end">
+                      <span className="text-primary font-bold">Niveau {p.level}</span>
+                      <span>{p.matchesPlayed ?? 0} match{ (p.matchesPlayed ?? 0) > 1 ? 's' : ''} joués</span>
+                    </div>
+                  </div>
+                ));
+              })()}
+            </div>
+
+            <div className="flex gap-2 justify-end">
+              <button 
+                onClick={() => setSubstitutingPlayer(null)} 
+                className="eva-button" 
+                style={{ borderColor: 'rgba(255,255,255,0.2)', color: 'white', background: 'transparent' }}
+              >
+                Annuler
               </button>
             </div>
           </div>
