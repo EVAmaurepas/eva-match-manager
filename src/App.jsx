@@ -102,6 +102,20 @@ function App() {
 
   const updatePlayer = (id, updates) => {
     setPlayers(players.map(p => p.id === id ? { ...p, ...updates } : p));
+    
+    // Mettre à jour l'icône/nom dans les matchs générés
+    setUpcomingMatches(prev => prev.map(match => ({
+      ...match,
+      team1: match.team1.map(p => p.id === id ? { ...p, ...updates } : p),
+      team2: match.team2.map(p => p.id === id ? { ...p, ...updates } : p)
+    })));
+
+    // Mettre à jour l'icône/nom dans l'historique
+    setMatchHistory(prev => prev.map(match => ({
+      ...match,
+      team1: match.team1.map(p => p.id === id ? { ...p, ...updates } : p),
+      team2: match.team2.map(p => p.id === id ? { ...p, ...updates } : p)
+    })));
   };
 
   const deletePlayer = (id) => {
