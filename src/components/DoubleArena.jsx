@@ -322,23 +322,15 @@ export default function DoubleArena({
     setSubstitutingPlayer(null);
   };
 
-  const toggleMatchFinished = (matchIndex) => {
-    const newMatches = [...doubleArenaMatches];
-    newMatches[matchIndex] = {
-      ...newMatches[matchIndex],
-      finished: !newMatches[matchIndex].finished
-    };
-    setDoubleArenaMatches(newMatches);
-  };
-
   const validateRound = () => {
-    if (!doubleArenaMatches || !doubleArenaMatches[0].finished || !doubleArenaMatches[1].finished) return;
+    if (!doubleArenaMatches) return;
 
     // Archive both matches with the current date
     const dateStr = new Date().toISOString();
     const finishedMatches = doubleArenaMatches.map(m => ({
       ...m,
-      date: dateStr
+      date: dateStr,
+      finished: true
     }));
 
     setDoubleArenaHistory([...finishedMatches, ...doubleArenaHistory]);
@@ -392,77 +384,26 @@ export default function DoubleArena({
         </div>
       ) : (
         <>
-          {/* Main Area */}
+          {/* Main Active Matches Split OR Generation Card */}
           {!doubleArenaMatches ? (
-            <div className="flex flex-col gap-6">
-              <div className="eva-card text-center py-12 flex flex-col items-center gap-6">
-                <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(0, 240, 255, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Swords size={40} className="text-primary glow-text" />
-                </div>
-                <div>
-                  <h2 className="text-primary mb-2">Prêt pour le Round Suivant</h2>
-                  <p className="opacity-75 text-sm max-w-lg mx-auto">
-                    Le système va sélectionner automatiquement les 16 joueurs prioritaires de la session et composer deux arènes équilibrées de 8 joueurs.
-                  </p>
-                </div>
-                
-                {isAdmin ? (
-                  <button onClick={generateRound} className="eva-button hover-glow text-lg px-8 py-4">
-                    Générer les Matchs (Round {Math.floor(doubleArenaHistory.length / 2) + 1})
-                  </button>
-                ) : (
-                  <p className="text-yellow-500 text-sm">En attente de la génération des matchs par l'administrateur...</p>
-                )}
+            <div className="eva-card text-center py-12 flex flex-col items-center gap-6">
+              <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(0, 240, 255, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Swords size={40} className="text-primary glow-text" />
               </div>
-
-              {/* Session Player Priorities */}
-              <div className="eva-card">
-                <h3 className="text-primary text-sm mb-4 border-b border-primary/20 pb-2">STATISTIQUES DE LA SESSION (DOUBLE ARÈNE)</h3>
-                <div className="table-responsive">
-                  <table className="w-full">
-                    <thead>
-                      <tr>
-                        <th>Nom</th>
-                        <th>Niveau</th>
-                        <th>Matchs Joués</th>
-                        <th>Attente Banc</th>
-                        <th>Statut</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {[...activePlayers].map(p => {
-                        const stat = sessionStats[p.id] || { matchesPlayed: 0, consecutiveBench: 0 };
-                        return (
-                          <tr key={p.id}>
-                            <td className="p-2 text-sm font-bold flex items-center gap-2">
-                              {p.avatar ? (
-                                <img src={p.avatar} alt={p.name} style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }} />
-                              ) : (
-                                <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px' }}>
-                                  {p.name.substring(0, 2).toUpperCase()}
-                                </div>
-                              )}
-                              {p.name}
-                            </td>
-                            <td className="p-2 text-sm">{p.level} / 10</td>
-                            <td className="p-2 text-sm">{stat.matchesPlayed} match{stat.matchesPlayed > 1 ? 's' : ''}</td>
-                            <td className="p-2 text-sm">
-                              {stat.consecutiveBench > 0 ? (
-                                <span className="text-secondary">⏳ {stat.consecutiveBench} match{stat.consecutiveBench > 1 ? 's' : ''}</span>
-                              ) : (
-                                <span className="opacity-40">-</span>
-                              )}
-                            </td>
-                            <td className="p-2 text-sm">
-                              <span className="text-primary text-xs border border-primary/30 px-1.5 py-0.5 rounded bg-primary/5">ACTIF</span>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+              <div>
+                <h2 className="text-primary mb-2">Prêt pour le Round Suivant</h2>
+                <p className="opacity-75 text-sm max-w-lg mx-auto">
+                  Le système va sélectionner automatiquement les 16 joueurs prioritaires de la session et composer deux arènes équilibrées de 8 joueurs.
+                </p>
               </div>
+              
+              {isAdmin ? (
+                <button onClick={generateRound} className="eva-button hover-glow text-lg px-8 py-4">
+                  Générer les Matchs (Round {Math.floor(doubleArenaHistory.length / 2) + 1})
+                </button>
+              ) : (
+                <p className="text-yellow-500 text-sm">En attente de la génération des matchs par l'administrateur...</p>
+              )}
             </div>
           ) : (
             <div className="flex flex-col gap-6">
@@ -478,11 +419,7 @@ export default function DoubleArena({
                       <span className="text-xs opacity-60">Écarts: {doubleArenaMatches[0].levelDiff} niv.</span>
                     </div>
                     <div>
-                      {doubleArenaMatches[0].finished ? (
-                        <span className="text-xs px-2.5 py-1 rounded bg-green-500/20 text-green-400 border border-green-500/30 glow-text" style={{ textShadow: '0 0 5px rgba(74,222,128,0.5)' }}>TERMINÉ</span>
-                      ) : (
-                        <span className="text-xs px-2.5 py-1 rounded bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 glow-text" style={{ textShadow: '0 0 5px rgba(250,204,21,0.5)' }}>EN COURS</span>
-                      )}
+                      <span className="text-xs px-2.5 py-1 rounded bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 glow-text" style={{ textShadow: '0 0 5px rgba(250,204,21,0.5)' }}>EN COURS</span>
                     </div>
                   </div>
 
@@ -499,16 +436,16 @@ export default function DoubleArena({
                           {doubleArenaMatches[0].team1.map(player => (
                             <tr 
                               key={player.id}
-                              draggable={isAdmin && !doubleArenaMatches[0].finished}
+                              draggable={isAdmin}
                               onDragStart={(e) => handleDragStart(e, player, 'team1', 0)}
                               onDragEnd={handleDragEnd}
-                              onDragOver={(e) => (isAdmin && !doubleArenaMatches[0].finished) ? handleDragOver(e, player.id) : null}
-                              onDragLeave={(isAdmin && !doubleArenaMatches[0].finished) ? handleDragLeave : null}
-                              onDrop={(e) => (isAdmin && !doubleArenaMatches[0].finished) ? handleDrop(e, player, 'team1', 0) : null}
-                              className={`draggable-row ${dragOverId === player.id ? 'drag-over' : ''} ${(!isAdmin || doubleArenaMatches[0].finished) ? 'cursor-default' : ''}`}
+                              onDragOver={(e) => isAdmin ? handleDragOver(e, player.id) : null}
+                              onDragLeave={isAdmin ? handleDragLeave : null}
+                              onDrop={(e) => isAdmin ? handleDrop(e, player, 'team1', 0) : null}
+                              className={`draggable-row ${dragOverId === player.id ? 'drag-over' : ''} ${!isAdmin ? 'cursor-default' : ''}`}
                             >
                               <td className="p-2 text-sm flex items-center gap-2">
-                                {isAdmin && !doubleArenaMatches[0].finished && <GripVertical size={14} className="opacity-30" />} 
+                                {isAdmin && <GripVertical size={14} className="opacity-30" />} 
                                 {getPlayerAvatar(player.id) ? (
                                   <img src={getPlayerAvatar(player.id)} alt={player.name} style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }} />
                                 ) : (
@@ -517,13 +454,13 @@ export default function DoubleArena({
                                   </div>
                                 )}
                                 <span>{player.name}</span>
-                                {isAdmin && !doubleArenaMatches[0].finished && (
+                                {isAdmin && (
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setSubstitutingPlayer({ player, teamKey: 'team1', matchIndex: 0 });
                                     }}
-                                    className="ml-auto text-secondary hover:text-white transition-colors p-1 flex items-center justify-center opacity-40 hover:opacity-100"
+                                    className="ml-auto text-primary hover:text-white transition-colors p-1 flex items-center justify-center opacity-40 hover:opacity-100"
                                     title="Remplacer ce joueur"
                                     style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}
                                   >
@@ -550,16 +487,16 @@ export default function DoubleArena({
                           {doubleArenaMatches[0].team2.map(player => (
                             <tr 
                               key={player.id}
-                              draggable={isAdmin && !doubleArenaMatches[0].finished}
+                              draggable={isAdmin}
                               onDragStart={(e) => handleDragStart(e, player, 'team2', 0)}
                               onDragEnd={handleDragEnd}
-                              onDragOver={(e) => (isAdmin && !doubleArenaMatches[0].finished) ? handleDragOver(e, player.id) : null}
-                              onDragLeave={(isAdmin && !doubleArenaMatches[0].finished) ? handleDragLeave : null}
-                              onDrop={(e) => (isAdmin && !doubleArenaMatches[0].finished) ? handleDrop(e, player, 'team2', 0) : null}
-                              className={`draggable-row ${dragOverId === player.id ? 'drag-over' : ''} ${(!isAdmin || doubleArenaMatches[0].finished) ? 'cursor-default' : ''}`}
+                              onDragOver={(e) => isAdmin ? handleDragOver(e, player.id) : null}
+                              onDragLeave={isAdmin ? handleDragLeave : null}
+                              onDrop={(e) => isAdmin ? handleDrop(e, player, 'team2', 0) : null}
+                              className={`draggable-row ${dragOverId === player.id ? 'drag-over' : ''} ${!isAdmin ? 'cursor-default' : ''}`}
                             >
                               <td className="p-2 text-sm flex items-center gap-2">
-                                {isAdmin && !doubleArenaMatches[0].finished && <GripVertical size={14} className="opacity-30" />} 
+                                {isAdmin && <GripVertical size={14} className="opacity-30" />} 
                                 {getPlayerAvatar(player.id) ? (
                                   <img src={getPlayerAvatar(player.id)} alt={player.name} style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }} />
                                 ) : (
@@ -568,13 +505,13 @@ export default function DoubleArena({
                                   </div>
                                 )}
                                 <span>{player.name}</span>
-                                {isAdmin && !doubleArenaMatches[0].finished && (
+                                {isAdmin && (
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setSubstitutingPlayer({ player, teamKey: 'team2', matchIndex: 0 });
                                     }}
-                                    className="ml-auto text-secondary hover:text-white transition-colors p-1 flex items-center justify-center opacity-40 hover:opacity-100"
+                                    className="ml-auto text-primary hover:text-white transition-colors p-1 flex items-center justify-center opacity-40 hover:opacity-100"
                                     title="Remplacer ce joueur"
                                     style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}
                                   >
@@ -588,16 +525,6 @@ export default function DoubleArena({
                         </tbody>
                       </table>
                     </div>
-
-                    {isAdmin && (
-                      <button 
-                        onClick={() => toggleMatchFinished(0)} 
-                        className={`eva-button w-full ${doubleArenaMatches[0].finished ? '' : 'secondary'}`}
-                        style={{ padding: '0.5rem' }}
-                      >
-                        {doubleArenaMatches[0].finished ? 'Modifier le match A' : 'Terminer le match A'}
-                      </button>
-                    )}
                   </div>
                 </div>
 
@@ -611,11 +538,7 @@ export default function DoubleArena({
                       <span className="text-xs opacity-60">Écarts: {doubleArenaMatches[1].levelDiff} niv.</span>
                     </div>
                     <div>
-                      {doubleArenaMatches[1].finished ? (
-                        <span className="text-xs px-2.5 py-1 rounded bg-green-500/20 text-green-400 border border-green-500/30 glow-text" style={{ textShadow: '0 0 5px rgba(74,222,128,0.5)' }}>TERMINÉ</span>
-                      ) : (
-                        <span className="text-xs px-2.5 py-1 rounded bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 glow-text" style={{ textShadow: '0 0 5px rgba(250,204,21,0.5)' }}>EN COURS</span>
-                      )}
+                      <span className="text-xs px-2.5 py-1 rounded bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 glow-text" style={{ textShadow: '0 0 5px rgba(250,204,21,0.5)' }}>EN COURS</span>
                     </div>
                   </div>
 
@@ -632,16 +555,16 @@ export default function DoubleArena({
                           {doubleArenaMatches[1].team1.map(player => (
                             <tr 
                               key={player.id}
-                              draggable={isAdmin && !doubleArenaMatches[1].finished}
+                              draggable={isAdmin}
                               onDragStart={(e) => handleDragStart(e, player, 'team1', 1)}
                               onDragEnd={handleDragEnd}
-                              onDragOver={(e) => (isAdmin && !doubleArenaMatches[1].finished) ? handleDragOver(e, player.id) : null}
-                              onDragLeave={(isAdmin && !doubleArenaMatches[1].finished) ? handleDragLeave : null}
-                              onDrop={(e) => (isAdmin && !doubleArenaMatches[1].finished) ? handleDrop(e, player, 'team1', 1) : null}
-                              className={`draggable-row ${dragOverId === player.id ? 'drag-over' : ''} ${(!isAdmin || doubleArenaMatches[1].finished) ? 'cursor-default' : ''}`}
+                              onDragOver={(e) => isAdmin ? handleDragOver(e, player.id) : null}
+                              onDragLeave={isAdmin ? handleDragLeave : null}
+                              onDrop={(e) => isAdmin ? handleDrop(e, player, 'team1', 1) : null}
+                              className={`draggable-row ${dragOverId === player.id ? 'drag-over' : ''} ${!isAdmin ? 'cursor-default' : ''}`}
                             >
                               <td className="p-2 text-sm flex items-center gap-2">
-                                {isAdmin && !doubleArenaMatches[1].finished && <GripVertical size={14} className="opacity-30" />} 
+                                {isAdmin && <GripVertical size={14} className="opacity-30" />} 
                                 {getPlayerAvatar(player.id) ? (
                                   <img src={getPlayerAvatar(player.id)} alt={player.name} style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }} />
                                 ) : (
@@ -650,7 +573,7 @@ export default function DoubleArena({
                                   </div>
                                 )}
                                 <span>{player.name}</span>
-                                {isAdmin && !doubleArenaMatches[1].finished && (
+                                {isAdmin && (
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
@@ -683,16 +606,16 @@ export default function DoubleArena({
                           {doubleArenaMatches[1].team2.map(player => (
                             <tr 
                               key={player.id}
-                              draggable={isAdmin && !doubleArenaMatches[1].finished}
+                              draggable={isAdmin}
                               onDragStart={(e) => handleDragStart(e, player, 'team2', 1)}
                               onDragEnd={handleDragEnd}
-                              onDragOver={(e) => (isAdmin && !doubleArenaMatches[1].finished) ? handleDragOver(e, player.id) : null}
-                              onDragLeave={(isAdmin && !doubleArenaMatches[1].finished) ? handleDragLeave : null}
-                              onDrop={(e) => (isAdmin && !doubleArenaMatches[1].finished) ? handleDrop(e, player, 'team2', 1) : null}
-                              className={`draggable-row ${dragOverId === player.id ? 'drag-over' : ''} ${(!isAdmin || doubleArenaMatches[1].finished) ? 'cursor-default' : ''}`}
+                              onDragOver={(e) => isAdmin ? handleDragOver(e, player.id) : null}
+                              onDragLeave={isAdmin ? handleDragLeave : null}
+                              onDrop={(e) => isAdmin ? handleDrop(e, player, 'team2', 1) : null}
+                              className={`draggable-row ${dragOverId === player.id ? 'drag-over' : ''} ${!isAdmin ? 'cursor-default' : ''}`}
                             >
                               <td className="p-2 text-sm flex items-center gap-2">
-                                {isAdmin && !doubleArenaMatches[1].finished && <GripVertical size={14} className="opacity-30" />} 
+                                {isAdmin && <GripVertical size={14} className="opacity-30" />} 
                                 {getPlayerAvatar(player.id) ? (
                                   <img src={getPlayerAvatar(player.id)} alt={player.name} style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }} />
                                 ) : (
@@ -701,7 +624,7 @@ export default function DoubleArena({
                                   </div>
                                 )}
                                 <span>{player.name}</span>
-                                {isAdmin && !doubleArenaMatches[1].finished && (
+                                {isAdmin && (
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
@@ -721,50 +644,73 @@ export default function DoubleArena({
                         </tbody>
                       </table>
                     </div>
-
-                    {isAdmin && (
-                      <button 
-                        onClick={() => toggleMatchFinished(1)} 
-                        className={`eva-button w-full ${doubleArenaMatches[1].finished ? '' : 'secondary'}`}
-                        style={{ padding: '0.5rem' }}
-                      >
-                        {doubleArenaMatches[1].finished ? 'Modifier le match B' : 'Terminer le match B'}
-                      </button>
-                    )}
                   </div>
                 </div>
               </div>
 
               {/* Central Validation Block */}
               <div className="eva-card text-center flex flex-col items-center gap-4 border-primary/30" style={{ background: 'rgba(0, 240, 255, 0.02)' }}>
-                {doubleArenaMatches[0].finished && doubleArenaMatches[1].finished ? (
-                  <>
-                    <div className="text-green-400 font-bold text-lg glow-text" style={{ textShadow: '0 0 10px rgba(74,222,128,0.4)' }}>
-                      🎉 TOUS LES MATCHS DU ROUND SONT TERMINÉS !
-                    </div>
-                    {isAdmin ? (
-                      <button onClick={validateRound} className="eva-button hover-glow text-lg px-8 py-3" style={{ background: 'var(--primary)', color: 'black' }}>
-                        Valider le Round et Passer au Suivant
-                      </button>
-                    ) : (
-                      <p className="text-yellow-500 text-sm">En attente de la validation du round par l'administrateur...</p>
-                    )}
-                  </>
+                {isAdmin ? (
+                  <button onClick={validateRound} className="eva-button hover-glow text-lg px-8 py-3" style={{ background: 'var(--primary)', color: 'black' }}>
+                    Valider le Round et Passer au Suivant
+                  </button>
                 ) : (
-                  <>
-                    <div className="text-yellow-500 font-bold text-sm">
-                      ⚠️ EN ATTENTE DE LA FIN DES DEUX MATCHS POUR PASSER AU SUIVANT
-                    </div>
-                    <button disabled className="eva-button" style={{ opacity: 0.4, cursor: 'not-allowed' }}>
-                      En attente des 2 matchs...
-                    </button>
-                  </>
+                  <p className="text-yellow-500 text-sm">En attente de la validation du round par l'administrateur...</p>
                 )}
               </div>
             </div>
           )}
 
-          {/* Double Arena History */}
+          {/* Session Player Priorities (Always Visible Below) */}
+          <div className="eva-card">
+            <h3 className="text-primary text-sm mb-4 border-b border-primary/20 pb-2">STATISTIQUES DE LA SESSION (DOUBLE ARÈNE)</h3>
+            <div className="table-responsive">
+              <table className="w-full">
+                <thead>
+                  <tr>
+                    <th>Nom</th>
+                    <th>Niveau</th>
+                    <th>Matchs Joués</th>
+                    <th>Attente Banc</th>
+                    <th>Statut</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...activePlayers].map(p => {
+                    const stat = sessionStats[p.id] || { matchesPlayed: 0, consecutiveBench: 0 };
+                    return (
+                      <tr key={p.id}>
+                        <td className="p-2 text-sm font-bold flex items-center gap-2">
+                          {p.avatar ? (
+                            <img src={p.avatar} alt={p.name} style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }} />
+                          ) : (
+                            <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px' }}>
+                              {p.name.substring(0, 2).toUpperCase()}
+                            </div>
+                          )}
+                          {p.name}
+                        </td>
+                        <td className="p-2 text-sm">{p.level} / 10</td>
+                        <td className="p-2 text-sm">{stat.matchesPlayed} match{stat.matchesPlayed > 1 ? 's' : ''}</td>
+                        <td className="p-2 text-sm">
+                          {stat.consecutiveBench > 0 ? (
+                            <span className="text-secondary">⏳ {stat.consecutiveBench} match{stat.consecutiveBench > 1 ? 's' : ''}</span>
+                          ) : (
+                            <span className="opacity-40">-</span>
+                          )}
+                        </td>
+                        <td className="p-2 text-sm">
+                          <span className="text-primary text-xs border border-primary/30 px-1.5 py-0.5 rounded bg-primary/5">ACTIF</span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Double Arena History (Always Visible Below) */}
           {doubleArenaHistory.length > 0 && (
             <div className="eva-card">
               <h2 className="text-primary text-sm mb-4 border-b border-primary/20 pb-2">HISTORIQUE DES ROUNDS (DOUBLE ARÈNE)</h2>
