@@ -365,7 +365,7 @@ function MatchMaker({ players, upcomingMatches, setUpcomingMatches, finishMatch,
                             {p.name.substring(0, 2).toUpperCase()}
                           </div>
                         )}
-                        <span className="text-sm truncate">{p.name}</span>
+                        <span className="text-sm truncate" title={p.name}>{p.name} <span className="text-xs opacity-50 font-normal">(Niv. {p.level})</span></span>
                       </div>
                       <div className="flex gap-1 flex-shrink-0 ml-2">
                         <button 
@@ -405,7 +405,7 @@ function MatchMaker({ players, upcomingMatches, setUpcomingMatches, finishMatch,
                             {p.name.substring(0, 2).toUpperCase()}
                           </div>
                         )}
-                        <span className="text-sm truncate">{p.name}</span>
+                        <span className="text-sm truncate" title={p.name}>{p.name} <span className="text-xs opacity-50 font-normal">(Niv. {p.level})</span></span>
                       </div>
                       <button onClick={() => setManualTeam1(manualTeam1.filter(x => x.id !== p.id))} className="text-red-500 hover:text-red-400 text-xs font-bold px-2 py-1">X</button>
                     </div>
@@ -435,7 +435,7 @@ function MatchMaker({ players, upcomingMatches, setUpcomingMatches, finishMatch,
                             {p.name.substring(0, 2).toUpperCase()}
                           </div>
                         )}
-                        <span className="text-sm truncate">{p.name}</span>
+                        <span className="text-sm truncate" title={p.name}>{p.name} <span className="text-xs opacity-50 font-normal">(Niv. {p.level})</span></span>
                       </div>
                       <button onClick={() => setManualTeam2(manualTeam2.filter(x => x.id !== p.id))} className="text-red-500 hover:text-red-400 text-xs font-bold px-2 py-1">X</button>
                     </div>
