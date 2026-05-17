@@ -123,130 +123,164 @@ function App() {
   });
 
   useEffect(() => {
-    fetch('/api/state')
-      .then(res => {
-        if (!res.ok) throw new Error("API not available");
-        return res.json();
-      })
-      .then(data => {
-        let loadedPlayers = data.players || [];
-        const savedPlayers = localStorage.getItem('eva-players');
-        if (!data.players && savedPlayers) {
-          loadedPlayers = JSON.parse(savedPlayers);
-        }
+    Promise.all([
+      fetch('/api/state')
+        .then(res => {
+          if (!res.ok) throw new Error("API State not available");
+          return res.json();
+        }),
+      fetch('/api/double-arena-state')
+        .then(res => {
+          if (!res.ok) throw new Error("API Double Arena not available");
+          return res.json();
+        })
+        .catch(err => {
+          console.warn("Double Arena API not available or empty, using defaults", err);
+          return {};
+        })
+    ])
+    .then(([stateData, doubleArenaData]) => {
+      // 1. Hydrate Classical Mode State
+      let loadedPlayers = stateData.players || [];
+      const savedPlayers = localStorage.getItem('eva-players');
+      if (!stateData.players && savedPlayers) {
+        loadedPlayers = JSON.parse(savedPlayers);
+      }
 
-        let loadedHistory = data.matchHistory || [];
-        const savedHistory = localStorage.getItem('eva-history');
-        if (!data.matchHistory && savedHistory) {
-          loadedHistory = JSON.parse(savedHistory);
-        }
+      let loadedHistory = stateData.matchHistory || [];
+      const savedHistory = localStorage.getItem('eva-history');
+      if (!stateData.matchHistory && savedHistory) {
+        loadedHistory = JSON.parse(savedHistory);
+      }
 
-        const sanitizedPlayers = loadedPlayers.map(p => ({
-          id: p.id,
-          name: p.name,
-          level: p.level ?? p.skill ?? 5,
-          matchesPlayed: p.matchesPlayed ?? p.gamesPlayed ?? 0,
-          consecutiveBench: p.consecutiveBench ?? 0,
-          lastPlayedAt: p.lastPlayedAt ?? 0,
-          isPaused: p.isPaused ?? false,
-          avatar: p.avatar
-        }));
+      const sanitizedPlayers = loadedPlayers.map(p => ({
+        id: p.id,
+        name: p.name,
+        level: p.level ?? p.skill ?? 5,
+        matchesPlayed: p.matchesPlayed ?? p.gamesPlayed ?? 0,
+        consecutiveBench: p.consecutiveBench ?? 0,
+        lastPlayedAt: p.lastPlayedAt ?? 0,
+        isPaused: p.isPaused ?? false,
+        avatar: p.avatar
+      }));
 
-        setPlayers(sanitizedPlayers);
-        
-        if (data.upcomingMatches) setUpcomingMatches(data.upcomingMatches);
-        else if (data.currentMatch) setUpcomingMatches([data.currentMatch]); // migration
-        else {
-          const savedMatches = localStorage.getItem('eva-upcoming');
-          if (savedMatches) setUpcomingMatches(JSON.parse(savedMatches));
-        }
-        
-        setMatchHistory(loadedHistory);
-
-        if (data.archives) setArchives(data.archives);
-        else {
-          const savedArchives = localStorage.getItem('eva-archives');
-          if (savedArchives) setArchives(JSON.parse(savedArchives));
-        }
-
-        let hasLoadedMatrices = false;
-        if (data.presenceHistory && data.teamHistory && data.opponentHistory) {
-          setPresenceHistory(data.presenceHistory);
-          setTeamHistory(data.teamHistory);
-          setOpponentHistory(data.opponentHistory);
-          hasLoadedMatrices = true;
-        } else {
-          const savedPresence = localStorage.getItem('eva-presence-history');
-          const savedTeam = localStorage.getItem('eva-team-history');
-          const savedOpponent = localStorage.getItem('eva-opponent-history');
-          if (savedPresence && savedTeam && savedOpponent) {
-            setPresenceHistory(JSON.parse(savedPresence));
-            setTeamHistory(JSON.parse(savedTeam));
-            setOpponentHistory(JSON.parse(savedOpponent));
-            hasLoadedMatrices = true;
-          }
-        }
-
-        // Auto-rebuild matrices if we have a match history but no matrices are saved
-        if (!hasLoadedMatrices && loadedHistory.length > 0) {
-          const { players: updatedPlayers, presence, team, opponent } = rebuildStatsFromHistory(sanitizedPlayers, loadedHistory);
-          setPlayers(updatedPlayers);
-          setPresenceHistory(presence);
-          setTeamHistory(team);
-          setOpponentHistory(opponent);
-        }
-
-        setLoading(false);
-      })
-      .catch(err => {
-        console.warn("API Error, falling back to localStorage", err);
-        const savedPlayers = localStorage.getItem('eva-players');
+      setPlayers(sanitizedPlayers);
+      
+      if (stateData.upcomingMatches) setUpcomingMatches(stateData.upcomingMatches);
+      else if (stateData.currentMatch) setUpcomingMatches([stateData.currentMatch]); // migration
+      else {
         const savedMatches = localStorage.getItem('eva-upcoming');
-        const savedHistory = localStorage.getItem('eva-history');
+        if (savedMatches) setUpcomingMatches(JSON.parse(savedMatches));
+      }
+      
+      setMatchHistory(loadedHistory);
+
+      if (stateData.archives) setArchives(stateData.archives);
+      else {
         const savedArchives = localStorage.getItem('eva-archives');
+        if (savedArchives) setArchives(JSON.parse(savedArchives));
+      }
+
+      let hasLoadedMatrices = false;
+      if (stateData.presenceHistory && stateData.teamHistory && stateData.opponentHistory) {
+        setPresenceHistory(stateData.presenceHistory);
+        setTeamHistory(stateData.teamHistory);
+        setOpponentHistory(stateData.opponentHistory);
+        hasLoadedMatrices = true;
+      } else {
         const savedPresence = localStorage.getItem('eva-presence-history');
         const savedTeam = localStorage.getItem('eva-team-history');
         const savedOpponent = localStorage.getItem('eva-opponent-history');
-        
-        let loadedPlayers = savedPlayers ? JSON.parse(savedPlayers) : [];
-        let loadedHistory = savedHistory ? JSON.parse(savedHistory) : [];
-
-        const sanitizedPlayers = loadedPlayers.map(p => ({
-          id: p.id,
-          name: p.name,
-          level: p.level ?? p.skill ?? 5,
-          matchesPlayed: p.matchesPlayed ?? p.gamesPlayed ?? 0,
-          consecutiveBench: p.consecutiveBench ?? 0,
-          lastPlayedAt: p.lastPlayedAt ?? 0,
-          isPaused: p.isPaused ?? false,
-          avatar: p.avatar
-        }));
-
-        setPlayers(sanitizedPlayers);
-        if (savedMatches) setUpcomingMatches(JSON.parse(savedMatches));
-        setMatchHistory(loadedHistory);
-        if (savedArchives) setArchives(JSON.parse(savedArchives));
-        
-        let hasLoadedMatrices = false;
         if (savedPresence && savedTeam && savedOpponent) {
           setPresenceHistory(JSON.parse(savedPresence));
           setTeamHistory(JSON.parse(savedTeam));
           setOpponentHistory(JSON.parse(savedOpponent));
           hasLoadedMatrices = true;
         }
+      }
 
-        if (!hasLoadedMatrices && loadedHistory.length > 0) {
-          const { players: updatedPlayers, presence, team, opponent } = rebuildStatsFromHistory(sanitizedPlayers, loadedHistory);
-          setPlayers(updatedPlayers);
-          setPresenceHistory(presence);
-          setTeamHistory(team);
-          setOpponentHistory(opponent);
-        }
+      // Auto-rebuild matrices if we have a match history but no matrices are saved
+      if (!hasLoadedMatrices && loadedHistory.length > 0) {
+        const { players: updatedPlayers, presence, team, opponent } = rebuildStatsFromHistory(sanitizedPlayers, loadedHistory);
+        setPlayers(updatedPlayers);
+        setPresenceHistory(presence);
+        setTeamHistory(team);
+        setOpponentHistory(opponent);
+      }
 
-        setLoading(false);
-      });
+      // 2. Hydrate Double Arena Mode State
+      if (doubleArenaData.doubleArenaMatches !== undefined) {
+        setDoubleArenaMatches(doubleArenaData.doubleArenaMatches);
+      } else {
+        const savedDoubleMatches = localStorage.getItem('eva-double-arena-matches');
+        if (savedDoubleMatches) setDoubleArenaMatches(JSON.parse(savedDoubleMatches));
+      }
+
+      if (doubleArenaData.doubleArenaHistory) {
+        setDoubleArenaHistory(doubleArenaData.doubleArenaHistory);
+      } else {
+        const savedDoubleHistory = localStorage.getItem('eva-double-arena-history');
+        if (savedDoubleHistory) setDoubleArenaHistory(JSON.parse(savedDoubleHistory));
+      }
+
+      setLoading(false);
+    })
+    .catch(err => {
+      console.warn("API Error, falling back to localStorage", err);
+      const savedPlayers = localStorage.getItem('eva-players');
+      const savedMatches = localStorage.getItem('eva-upcoming');
+      const savedHistory = localStorage.getItem('eva-history');
+      const savedArchives = localStorage.getItem('eva-archives');
+      const savedPresence = localStorage.getItem('eva-presence-history');
+      const savedTeam = localStorage.getItem('eva-team-history');
+      const savedOpponent = localStorage.getItem('eva-opponent-history');
+
+      const savedDoubleMatches = localStorage.getItem('eva-double-arena-matches');
+      const savedDoubleHistory = localStorage.getItem('eva-double-arena-history');
+      
+      let loadedPlayers = savedPlayers ? JSON.parse(savedPlayers) : [];
+      let loadedHistory = savedHistory ? JSON.parse(savedHistory) : [];
+
+      const sanitizedPlayers = loadedPlayers.map(p => ({
+        id: p.id,
+        name: p.name,
+        level: p.level ?? p.skill ?? 5,
+        matchesPlayed: p.matchesPlayed ?? p.gamesPlayed ?? 0,
+        consecutiveBench: p.consecutiveBench ?? 0,
+        lastPlayedAt: p.lastPlayedAt ?? 0,
+        isPaused: p.isPaused ?? false,
+        avatar: p.avatar
+      }));
+
+      setPlayers(sanitizedPlayers);
+      if (savedMatches) setUpcomingMatches(JSON.parse(savedMatches));
+      setMatchHistory(loadedHistory);
+      if (savedArchives) setArchives(JSON.parse(savedArchives));
+      
+      let hasLoadedMatrices = false;
+      if (savedPresence && savedTeam && savedOpponent) {
+        setPresenceHistory(JSON.parse(savedPresence));
+        setTeamHistory(JSON.parse(savedTeam));
+        setOpponentHistory(JSON.parse(savedOpponent));
+        hasLoadedMatrices = true;
+      }
+
+      if (!hasLoadedMatrices && loadedHistory.length > 0) {
+        const { players: updatedPlayers, presence, team, opponent } = rebuildStatsFromHistory(sanitizedPlayers, loadedHistory);
+        setPlayers(updatedPlayers);
+        setPresenceHistory(presence);
+        setTeamHistory(team);
+        setOpponentHistory(opponent);
+      }
+
+      if (savedDoubleMatches) setDoubleArenaMatches(JSON.parse(savedDoubleMatches));
+      if (savedDoubleHistory) setDoubleArenaHistory(JSON.parse(savedDoubleHistory));
+
+      setLoading(false);
+    });
   }, []);
 
+  // Classical Mode Sync
   useEffect(() => {
     if (loading) return;
     
@@ -290,6 +324,36 @@ function App() {
       body: JSON.stringify(data)
     }).catch(() => {}); // ignore error locally
   }, [players, upcomingMatches, matchHistory, archives, presenceHistory, teamHistory, opponentHistory, loading]);
+
+  // Double Arena Mode Sync
+  useEffect(() => {
+    if (loading) return;
+
+    const cleanMatch = (m) => ({
+      ...m,
+      team1: m.team1.map(({ avatar, ...p }) => p),
+      team2: m.team2.map(({ avatar, ...p }) => p)
+    });
+
+    const cleanedDoubleMatches = doubleArenaMatches ? doubleArenaMatches.map(cleanMatch) : null;
+    const cleanedDoubleHistory = doubleArenaHistory ? doubleArenaHistory.map(cleanMatch) : [];
+
+    // Save locally always
+    localStorage.setItem('eva-double-arena-matches', JSON.stringify(cleanedDoubleMatches));
+    localStorage.setItem('eva-double-arena-history', JSON.stringify(cleanedDoubleHistory));
+
+    // Try saving to DB
+    const doubleArenaData = {
+      doubleArenaMatches: cleanedDoubleMatches,
+      doubleArenaHistory: cleanedDoubleHistory
+    };
+
+    fetch('/api/double-arena-state', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(doubleArenaData)
+    }).catch(() => {}); // ignore error locally
+  }, [doubleArenaMatches, doubleArenaHistory, loading]);
 
   const addPlayer = (name, level) => {
     const newPlayer = {
@@ -693,7 +757,7 @@ function App() {
         }} 
         className="glow-text text-primary"
       >
-        V1.8.0
+        V1.9.0
       </div>
     </div>
   );
