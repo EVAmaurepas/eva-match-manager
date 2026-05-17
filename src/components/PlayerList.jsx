@@ -104,7 +104,7 @@ function PlayerList({ players, onAdd, onUpdate, onDelete, isAdmin }) {
               <thead>
                 <tr>
                   <th>Nom</th>
-                  <th>Niveau</th>
+                  {isAdmin && <th>Niveau</th>}
                   <th>Matchs Joués</th>
                   <th className="text-right">Actions</th>
                 </tr>
@@ -133,23 +133,25 @@ function PlayerList({ players, onAdd, onUpdate, onDelete, isAdmin }) {
                         )}
                       </div>
                     </td>
-                    <td>
-                      {editingId === player.id ? (
-                        <div className="flex items-center gap-2">
-                          <input 
-                            type="number" min="1" max="10" 
-                            className="eva-input" style={{ width: '60px', padding: '0.25rem' }}
-                            value={editLevel}
-                            onChange={(e) => setEditLevel(e.target.value)}
-                          />
-                          <button onClick={() => saveEdit(player.id)} className="text-primary hover:text-white">
-                            <Check size={18} />
-                          </button>
-                        </div>
-                      ) : (
-                        <span className="text-primary">{player.level} / 10</span>
-                      )}
-                    </td>
+                    {isAdmin && (
+                      <td>
+                        {editingId === player.id ? (
+                          <div className="flex items-center gap-2">
+                            <input 
+                              type="number" min="1" max="10" 
+                              className="eva-input" style={{ width: '60px', padding: '0.25rem' }}
+                              value={editLevel}
+                              onChange={(e) => setEditLevel(e.target.value)}
+                            />
+                            <button onClick={() => saveEdit(player.id)} className="text-primary hover:text-white">
+                              <Check size={18} />
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-primary">{player.level} / 10</span>
+                        )}
+                      </td>
+                    )}
                     <td>{player.matchesPlayed}</td>
                     <td className="text-right flex gap-2 justify-end items-center" style={{ minHeight: '48px' }}>
                       {isAdmin && (

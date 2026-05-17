@@ -214,7 +214,7 @@ function MatchMaker({ players, upcomingMatches, setUpcomingMatches, finishMatch,
                       {index === 0 ? <Flag className="text-secondary" /> : <Play size={16} />}
                       Match {matchHistory.length + index + 1}
                     </h3>
-                    <p className="text-xs opacity-50">Écart : {match.levelDiff} | Niv. Total : {getTeamLevel(match.team1) + getTeamLevel(match.team2)}</p>
+                    {isAdmin && <p className="text-xs opacity-50">Écart : {match.levelDiff} | Niv. Total : {getTeamLevel(match.team1) + getTeamLevel(match.team2)}</p>}
                   </div>
                   
                   <div className="flex gap-3">
@@ -248,7 +248,7 @@ function MatchMaker({ players, upcomingMatches, setUpcomingMatches, finishMatch,
                     <table className="w-full">
                       <thead>
                         <tr>
-                          <th colSpan="2" className="text-primary text-xs py-1 border-b border-primary/20">ÉQUIPE BLEUE ({getTeamLevel(match.team1)})</th>
+                          <th colSpan="2" className="text-primary text-xs py-1 border-b border-primary/20">ÉQUIPE BLEUE {isAdmin && `(${getTeamLevel(match.team1)})`}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -274,7 +274,7 @@ function MatchMaker({ players, upcomingMatches, setUpcomingMatches, finishMatch,
                               )}
                               {player.name}
                             </td>
-                            <td className="p-2 text-right text-xs opacity-60">Niv. {player.level}</td>
+                            <td className="p-2 text-right text-xs opacity-60">{isAdmin && `Niv. ${player.level}`}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -286,7 +286,7 @@ function MatchMaker({ players, upcomingMatches, setUpcomingMatches, finishMatch,
                     <table className="w-full">
                       <thead>
                         <tr>
-                          <th colSpan="2" className="text-secondary text-xs py-1 border-b border-secondary/20">ÉQUIPE ROUGE ({getTeamLevel(match.team2)})</th>
+                          <th colSpan="2" className="text-secondary text-xs py-1 border-b border-secondary/20">ÉQUIPE ROUGE {isAdmin && `(${getTeamLevel(match.team2)})`}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -312,7 +312,7 @@ function MatchMaker({ players, upcomingMatches, setUpcomingMatches, finishMatch,
                               )}
                               {player.name}
                             </td>
-                            <td className="p-2 text-right text-xs opacity-60">Niv. {player.level}</td>
+                            <td className="p-2 text-right text-xs opacity-60">{isAdmin && `Niv. ${player.level}`}</td>
                           </tr>
                         ))}
                       </tbody>
