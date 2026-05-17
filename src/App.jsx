@@ -95,7 +95,8 @@ function App() {
       id: Date.now().toString(),
       name,
       level: parseInt(level),
-      matchesPlayed: 0
+      matchesPlayed: 0,
+      isPaused: false
     };
     setPlayers([...players, newPlayer]);
   };

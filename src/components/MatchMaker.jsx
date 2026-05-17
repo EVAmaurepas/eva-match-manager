@@ -97,7 +97,8 @@ function MatchMaker({ players, upcomingMatches, setUpcomingMatches, finishMatch,
   const createMatchForUpcomingList = (baseUpcomingMatches) => {
     const combinedHistory = [...baseUpcomingMatches].reverse().concat(matchHistory);
 
-    const playerStats = players.map(player => {
+    const activePlayers = players.filter(p => !p.isPaused);
+    const playerStats = activePlayers.map(player => {
       let consecutive = 0;
       let sinceLast = 0;
       
@@ -175,13 +176,14 @@ function MatchMaker({ players, upcomingMatches, setUpcomingMatches, finishMatch,
     setUpcomingMatches(newUpcoming);
   };
 
-  if (players.length < MIN_PLAYERS) {
+  const activePlayersCount = players.filter(p => !p.isPaused).length;
+  if (activePlayersCount < MIN_PLAYERS) {
     return (
       <div className="eva-card text-center py-12">
         <Swords size={64} className="mx-auto mb-4 text-secondary opacity-50" />
-        <h2 className="text-xl mb-2">Pas assez de joueurs</h2>
+        <h2 className="text-xl mb-2">Pas assez de joueurs actifs</h2>
         <p className="opacity-70">
-          Vous avez {players.length} joueur(s) sur les {MIN_PLAYERS} nécessaires pour un match 4v4.
+          Vous avez {activePlayersCount} joueur(s) actif(s) sur les {MIN_PLAYERS} nécessaires pour un match 4v4. (Total inscrits: {players.length})
         </p>
       </div>
     );
@@ -355,7 +357,7 @@ function MatchMaker({ players, upcomingMatches, setUpcomingMatches, finishMatch,
               <div className="p-4 border border-gray-700 rounded bg-black/20">
                 <h3 className="font-bold mb-4 opacity-80 text-sm">JOUEURS DISPONIBLES</h3>
                 <div className="flex flex-col gap-2">
-                  {players.filter(p => !manualTeam1.find(x => x.id === p.id) && !manualTeam2.find(x => x.id === p.id)).map(p => (
+                  {players.filter(p => !p.isPaused && !manualTeam1.find(x => x.id === p.id) && !manualTeam2.find(x => x.id === p.id)).map(p => (
                     <div key={p.id} className="flex justify-between items-center bg-white/5 p-2 rounded">
                       <div className="flex items-center gap-2 overflow-hidden">
                         {p.avatar ? (

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { UserPlus, Trash2, Edit2, Check, Image as ImageIcon } from 'lucide-react';
+import { UserPlus, Trash2, Edit2, Check, Image as ImageIcon, PauseCircle, PlayCircle } from 'lucide-react';
 
 function PlayerList({ players, onAdd, onUpdate, onDelete, isAdmin }) {
   const [newName, setNewName] = useState('');
@@ -111,9 +111,9 @@ function PlayerList({ players, onAdd, onUpdate, onDelete, isAdmin }) {
               </thead>
               <tbody>
                 {players.map(player => (
-                  <tr key={player.id}>
+                  <tr key={player.id} style={{ backgroundColor: player.isPaused ? 'rgba(255, 0, 85, 0.05)' : 'transparent' }}>
                     <td className="font-bold">
-                      <div className="flex items-center gap-3">
+                      <div className={`flex items-center gap-3 ${player.isPaused ? 'opacity-60' : ''}`}>
                         {player.avatar ? (
                           <img src={player.avatar} alt={player.name} style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} />
                         ) : (
@@ -129,7 +129,17 @@ function PlayerList({ players, onAdd, onUpdate, onDelete, isAdmin }) {
                             onChange={(e) => setEditName(e.target.value)}
                           />
                         ) : (
-                          player.name
+                          <div className="flex items-center gap-2">
+                            {player.name}
+                            {player.isPaused && (
+                              <span 
+                                className="text-xs px-2 py-0.5 rounded font-bold tracking-wider" 
+                                style={{ backgroundColor: '#ff0055', color: 'white', boxShadow: '0 0 10px rgba(255,0,85,0.4)' }}
+                              >
+                                EN PAUSE
+                              </span>
+                            )}
+                          </div>
                         )}
                       </div>
                     </td>
@@ -160,6 +170,17 @@ function PlayerList({ players, onAdd, onUpdate, onDelete, isAdmin }) {
                             <ImageIcon size={18} />
                             <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => handleImageUpload(e, player.id)} />
                           </label>
+                          <button 
+                            onClick={() => onUpdate(player.id, { isPaused: !player.isPaused })} 
+                            className={`transition-colors ${player.isPaused ? 'hover:scale-110' : 'hover:text-white'}`}
+                            style={{ 
+                              color: player.isPaused ? '#00ff88' : 'var(--secondary)',
+                              filter: player.isPaused ? 'drop-shadow(0 0 5px rgba(0,255,136,0.6))' : 'none'
+                            }}
+                            title={player.isPaused ? "Reprendre (Actif)" : "Mettre en pause"}
+                          >
+                            {player.isPaused ? <PlayCircle size={22} /> : <PauseCircle size={18} />}
+                          </button>
                           <button 
                             onClick={() => editingId === player.id ? saveEdit(player.id) : startEdit(player)} 
                             className="text-secondary hover:text-white transition-colors"
