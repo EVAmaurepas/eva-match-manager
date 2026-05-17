@@ -263,22 +263,44 @@ export default function DoubleArena({
     ]);
   };
 
-  const handleSubstitute = (benchPlayer) => {
+  const handleSubstitute = (selectedPlayer) => {
     if (!substitutingPlayer) return;
     const { player: targetPlayer, teamKey, matchIndex } = substitutingPlayer;
 
     const newMatches = [...doubleArenaMatches];
-    const match = { ...newMatches[matchIndex] };
+    
+    // Check if the selected player is currently playing in the other arena
+    const otherMatchIndex = matchIndex === 0 ? 1 : 0;
+    const otherMatch = { ...newMatches[otherMatchIndex] };
+    
+    let foundInOtherMatch = false;
+    let otherTeamKey = null;
 
-    // Replace the player in the correct team
-    match[teamKey] = match[teamKey].map(p => 
-      p.id === targetPlayer.id ? benchPlayer : p
+    if (otherMatch.team1.some(p => p.id === selectedPlayer.id)) {
+      foundInOtherMatch = true;
+      otherTeamKey = 'team1';
+    } else if (otherMatch.team2.some(p => p.id === selectedPlayer.id)) {
+      foundInOtherMatch = true;
+      otherTeamKey = 'team2';
+    }
+
+    if (foundInOtherMatch) {
+      // SWAP: Exchange targetPlayer and selectedPlayer
+      otherMatch[otherTeamKey] = otherMatch[otherTeamKey].map(p =>
+        p.id === selectedPlayer.id ? targetPlayer : p
+      );
+      otherMatch.levelDiff = Math.abs(getTeamLevel(otherMatch.team1) - getTeamLevel(otherMatch.team2));
+      newMatches[otherMatchIndex] = otherMatch;
+    }
+
+    // In the current match, replace targetPlayer with selectedPlayer
+    const currentMatch = { ...newMatches[matchIndex] };
+    currentMatch[teamKey] = currentMatch[teamKey].map(p =>
+      p.id === targetPlayer.id ? selectedPlayer : p
     );
+    currentMatch.levelDiff = Math.abs(getTeamLevel(currentMatch.team1) - getTeamLevel(currentMatch.team2));
+    newMatches[matchIndex] = currentMatch;
 
-    // Recalculate level difference
-    match.levelDiff = Math.abs(getTeamLevel(match.team1) - getTeamLevel(match.team2));
-
-    newMatches[matchIndex] = match;
     setDoubleArenaMatches(newMatches);
     setSubstitutingPlayer(null);
   };
@@ -770,47 +792,111 @@ export default function DoubleArena({
               Sélectionnez un joueur du banc pour remplacer <strong className="text-primary">{substitutingPlayer.player.name}</strong> dans l'arène {substitutingPlayer.matchIndex === 0 ? 'A' : 'B'}.
             </p>
             
-            <div className="flex flex-col gap-2 max-h-[50vh] overflow-y-auto mb-6 pr-1">
+            <div className="flex flex-col gap-5 max-h-[60vh] overflow-y-auto mb-6 pr-1">
               {(() => {
-                const match = doubleArenaMatches[substitutingPlayer.matchIndex];
+                const matchIndex = substitutingPlayer.matchIndex;
+                const match = doubleArenaMatches[matchIndex];
                 if (!match) return null;
-                const playingIds = [...match.team1.map(p => p.id), ...match.team2.map(p => p.id)];
-                const benchPlayers = players.filter(p => !p.isPaused && !playingIds.includes(p.id));
 
-                if (benchPlayers.length === 0) {
-                  return <p className="text-center py-4 opacity-50 italic text-sm">Aucun joueur n'est disponible sur le banc.</p>;
-                }
+                // Collect playing ids from both Arena A and Arena B
+                const allPlayingIds = [
+                  ...doubleArenaMatches[0].team1.map(p => p.id),
+                  ...doubleArenaMatches[0].team2.map(p => p.id),
+                  ...doubleArenaMatches[1].team1.map(p => p.id),
+                  ...doubleArenaMatches[1].team2.map(p => p.id)
+                ];
 
-                return benchPlayers.map(p => {
-                  const stat = sessionStats[p.id] || { matchesPlayed: 0, consecutiveBench: 0 };
-                  return (
-                    <div 
-                      key={p.id} 
-                      onClick={() => handleSubstitute(p)}
-                      className="flex justify-between items-center bg-white/5 hover:bg-primary/10 border border-transparent hover:border-primary/20 p-2.5 rounded cursor-pointer transition-all"
-                    >
-                      <div className="flex items-center gap-3 overflow-hidden">
-                        {p.avatar ? (
-                          <img src={p.avatar} alt={p.name} style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                // Bench players: Active players not playing in EITHER Arena A or Arena B
+                const benchPlayers = players.filter(p => !p.isPaused && !allPlayingIds.includes(p.id));
+
+                // Other Arena players: Players currently playing in the other match
+                const otherMatchIndex = matchIndex === 0 ? 1 : 0;
+                const otherMatch = doubleArenaMatches[otherMatchIndex];
+                const otherArenaPlayers = otherMatch ? [...otherMatch.team1, ...otherMatch.team2] : [];
+
+                return (
+                  <>
+                    {/* Section 1: Bench Players */}
+                    <div>
+                      <h3 className="text-primary text-xs font-bold mb-2 border-b border-primary/20 pb-1 uppercase tracking-wider">
+                        Joueurs disponibles sur le banc
+                      </h3>
+                      <div className="flex flex-col gap-2">
+                        {benchPlayers.length === 0 ? (
+                          <p className="text-center py-2 opacity-40 italic text-xs">Aucun joueur disponible sur le banc.</p>
                         ) : (
-                          <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', flexShrink: 0 }}>
-                            {p.name.substring(0, 2).toUpperCase()}
-                          </div>
+                          benchPlayers.map(p => {
+                            const stat = sessionStats[p.id] || { matchesPlayed: 0, consecutiveBench: 0 };
+                            return (
+                              <div 
+                                key={p.id} 
+                                onClick={() => handleSubstitute(p)}
+                                className="flex justify-between items-center bg-white/5 hover:bg-primary/10 border border-transparent hover:border-primary/20 p-2 rounded cursor-pointer transition-all"
+                              >
+                                <div className="flex items-center gap-3 overflow-hidden">
+                                  {p.avatar ? (
+                                    <img src={p.avatar} alt={p.name} style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                                  ) : (
+                                    <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', flexShrink: 0 }}>
+                                      {p.name.substring(0, 2).toUpperCase()}
+                                    </div>
+                                  )}
+                                  <div className="flex flex-col text-left">
+                                    <span className="text-sm font-bold truncate">{p.name}</span>
+                                    {stat.consecutiveBench > 0 && (
+                                      <span className="text-xs text-secondary opacity-85">⏳ Banc : {stat.consecutiveBench} match{stat.consecutiveBench > 1 ? 'es' : ''}</span>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="text-right text-xs opacity-75 flex flex-col items-end">
+                                  <span className="text-primary font-bold">Niveau {p.level}</span>
+                                  <span>{stat.matchesPlayed} match{stat.matchesPlayed > 1 ? 's' : ''} joués</span>
+                                </div>
+                              </div>
+                            );
+                          })
                         )}
-                        <div className="flex flex-col text-left">
-                          <span className="text-sm font-bold truncate">{p.name}</span>
-                          {stat.consecutiveBench > 0 && (
-                            <span className="text-xs text-secondary opacity-85">⏳ Banc : {stat.consecutiveBench} match{stat.consecutiveBench > 1 ? 'es' : ''}</span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="text-right text-xs opacity-75 flex flex-col items-end">
-                        <span className="text-primary font-bold">Niveau {p.level}</span>
-                        <span>{stat.matchesPlayed} match{stat.matchesPlayed > 1 ? 's' : ''} joués</span>
                       </div>
                     </div>
-                  );
-                });
+
+                    {/* Section 2: Other Arena Players */}
+                    <div>
+                      <h3 className="text-secondary text-xs font-bold mb-2 border-b border-secondary/20 pb-1 uppercase tracking-wider">
+                        Échanger avec l'arène {otherMatchIndex === 0 ? 'A' : 'B'} (SWAP)
+                      </h3>
+                      <div className="flex flex-col gap-2">
+                        {otherArenaPlayers.map(p => {
+                          const stat = sessionStats[p.id] || { matchesPlayed: 0 };
+                          return (
+                            <div 
+                              key={p.id} 
+                              onClick={() => handleSubstitute(p)}
+                              className="flex justify-between items-center bg-white/5 hover:bg-secondary/15 border border-transparent hover:border-secondary/20 p-2 rounded cursor-pointer transition-all"
+                            >
+                              <div className="flex items-center gap-3 overflow-hidden">
+                                {p.avatar ? (
+                                  <img src={p.avatar} alt={p.name} style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                                ) : (
+                                  <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', flexShrink: 0 }}>
+                                    {p.name.substring(0, 2).toUpperCase()}
+                                  </div>
+                                )}
+                                <div className="flex flex-col text-left">
+                                  <span className="text-sm font-bold truncate">{p.name}</span>
+                                  <span className="text-xs text-secondary/80">Joue actuellement dans l'autre arène</span>
+                                </div>
+                              </div>
+                              <div className="text-right text-xs opacity-75 flex flex-col items-end">
+                                  <span className="text-secondary font-bold">Niveau {p.level}</span>
+                                  <span>{stat.matchesPlayed} match{stat.matchesPlayed > 1 ? 's' : ''} joués</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </>
+                );
               })()}
             </div>
 
