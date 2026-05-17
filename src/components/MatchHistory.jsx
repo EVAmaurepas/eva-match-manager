@@ -1,6 +1,6 @@
 import { History, Calendar } from 'lucide-react';
 
-function MatchHistory({ matchHistory }) {
+function MatchHistory({ matchHistory, deleteFinishedMatch, isAdmin }) {
   if (!matchHistory || matchHistory.length === 0) {
     return (
       <div className="eva-card text-center py-12">
@@ -13,6 +13,12 @@ function MatchHistory({ matchHistory }) {
     );
   }
 
+  const handleDelete = (matchId) => {
+    if (window.confirm("Êtes-vous sûr de vouloir supprimer ce match ? Cette action mettra à jour le nombre de matchs joués des participants.")) {
+      deleteFinishedMatch(matchId);
+    }
+  };
+
   return (
     <div className="grid gap-6">
       <h2 className="mb-4 flex items-center gap-2 text-2xl font-bold">
@@ -24,12 +30,23 @@ function MatchHistory({ matchHistory }) {
         <div key={match.id} className="eva-card p-6">
           <div className="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
             <span className="text-lg font-bold text-primary">Match #{matchHistory.length - index}</span>
-            <span className="text-sm opacity-60 flex items-center gap-2">
-              <Calendar size={16} />
-              {new Date(match.date).toLocaleString('fr-FR', {
-                hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit'
-              })}
-            </span>
+            <div className="flex items-center gap-4">
+              <span className="text-sm opacity-60 flex items-center gap-2">
+                <Calendar size={16} />
+                {new Date(match.date).toLocaleString('fr-FR', {
+                  hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit'
+                })}
+              </span>
+              {isAdmin && (
+                <button 
+                  onClick={() => handleDelete(match.id)} 
+                  className="eva-button" 
+                  style={{ background: 'transparent', color: '#ff4444', border: '1px solid #ff4444', padding: '0.2rem 0.5rem', minWidth: 'auto', fontSize: '0.8rem' }}
+                >
+                  Supprimer
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

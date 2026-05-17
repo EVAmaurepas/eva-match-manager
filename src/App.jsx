@@ -135,6 +135,25 @@ function App() {
     setUpcomingMatches(upcomingMatches.slice(1));
   };
 
+  const deleteFinishedMatch = (matchId) => {
+    const matchToDelete = matchHistory.find(m => m.id === matchId);
+    if (!matchToDelete) return;
+
+    const participatingIds = [
+      ...matchToDelete.team1.map(p => p.id),
+      ...matchToDelete.team2.map(p => p.id)
+    ];
+
+    setPlayers(players.map(p => {
+      if (participatingIds.includes(p.id)) {
+        return { ...p, matchesPlayed: Math.max(0, p.matchesPlayed - 1) };
+      }
+      return p;
+    }));
+
+    setMatchHistory(matchHistory.filter(m => m.id !== matchId));
+  };
+
   const exportData = () => {
     const data = { players, upcomingMatches, matchHistory, archives };
     const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
@@ -309,7 +328,11 @@ function App() {
           />
         )}
         {activeTab === 'history' && (
-          <MatchHistory matchHistory={matchHistory} />
+          <MatchHistory 
+            matchHistory={matchHistory} 
+            deleteFinishedMatch={deleteFinishedMatch}
+            isAdmin={userRole === 'admin'}
+          />
         )}
         {activeTab === 'archives' && (
           <Archives archives={archives} setArchives={setArchives} isAdmin={userRole === 'admin'} />

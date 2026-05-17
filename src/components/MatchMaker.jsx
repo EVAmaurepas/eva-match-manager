@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Play, Flag, Swords, Check, GripVertical } from 'lucide-react';
+import { Play, Flag, Swords, Check, GripVertical, RefreshCw } from 'lucide-react';
 
 // Helper: Get all combinations of size k from an array
 function getCombinations(array, k) {
@@ -91,24 +91,20 @@ function MatchMaker({ players, upcomingMatches, setUpcomingMatches, finishMatch,
     setUpcomingMatches(upcomingMatches.filter((_, i) => i !== index));
   };
 
-  const generateMatch = () => {
-    // combinedHistory: Reverse upcoming matches + history to get chronological order (newest first)
-    const combinedHistory = [...upcomingMatches].reverse().concat(matchHistory);
+  const createMatchForUpcomingList = (baseUpcomingMatches) => {
+    const combinedHistory = [...baseUpcomingMatches].reverse().concat(matchHistory);
 
-    // 1. Calculate rotation stats for each player
     const playerStats = players.map(player => {
       let consecutive = 0;
       let sinceLast = 0;
       
-      // Virtual matches played count for priority (total)
       let virtualMatchesPlayed = player.matchesPlayed;
-      upcomingMatches.forEach(m => {
+      baseUpcomingMatches.forEach(m => {
         if ([...m.team1, ...m.team2].some(p => p.id === player.id)) {
           virtualMatchesPlayed++;
         }
       });
 
-      // consecutive: how many of the last N matches did they play without a break?
       for (let i = 0; i < combinedHistory.length; i++) {
         const match = combinedHistory[i];
         const played = [...match.team1, ...match.team2].some(p => p.id === player.id);
@@ -116,7 +112,6 @@ function MatchMaker({ players, upcomingMatches, setUpcomingMatches, finishMatch,
         else break;
       }
 
-      // sinceLast: how many of the last N matches did they miss?
       for (let i = 0; i < combinedHistory.length; i++) {
         const match = combinedHistory[i];
         const played = [...match.team1, ...match.team2].some(p => p.id === player.id);
@@ -124,7 +119,6 @@ function MatchMaker({ players, upcomingMatches, setUpcomingMatches, finishMatch,
         else break;
       }
 
-      // Calculate priority score
       let priorityScore = virtualMatchesPlayed;
       
       if (sinceLast >= 3) priorityScore -= 500;
@@ -138,12 +132,10 @@ function MatchMaker({ players, upcomingMatches, setUpcomingMatches, finishMatch,
       return { ...player, priorityScore };
     });
 
-    // 2. Sort by priority score and pick 8
     const shuffled = [...playerStats].sort(() => 0.5 - Math.random());
     const sorted = shuffled.sort((a, b) => a.priorityScore - b.priorityScore);
     const selectedPlayers = sorted.slice(0, 8);
 
-    // 3. Find the best combination to balance levels
     const team1Combinations = getCombinations(selectedPlayers, 4);
     let bestTeam1 = null;
     let bestTeam2 = null;
@@ -160,12 +152,24 @@ function MatchMaker({ players, upcomingMatches, setUpcomingMatches, finishMatch,
       }
     });
 
-    setUpcomingMatches([...upcomingMatches, {
+    return {
       team1: bestTeam1,
       team2: bestTeam2,
       levelDiff: minDifference,
       id: Date.now().toString()
-    }]);
+    };
+  };
+
+  const generateMatch = () => {
+    setUpcomingMatches([...upcomingMatches, createMatchForUpcomingList(upcomingMatches)]);
+  };
+
+  const refreshMatch = (index) => {
+    const baseUpcomingMatches = upcomingMatches.slice(0, index);
+    const newMatch = createMatchForUpcomingList(baseUpcomingMatches);
+    const newUpcoming = [...upcomingMatches];
+    newUpcoming[index] = newMatch;
+    setUpcomingMatches(newUpcoming);
   };
 
   if (players.length < MIN_PLAYERS) {
@@ -216,13 +220,23 @@ function MatchMaker({ players, upcomingMatches, setUpcomingMatches, finishMatch,
                   <div className="flex gap-3">
                     {isAdmin && (
                       index === 0 ? (
-                        <button onClick={finishMatch} className="eva-button secondary">
-                          <Check size={18} /> Terminer
-                        </button>
+                        <>
+                          <button onClick={() => refreshMatch(index)} className="eva-button" title="Générer de nouveau" style={{ background: 'transparent', color: '#00f0ff', border: '1px solid #00f0ff', padding: '0.4rem', minWidth: 'auto' }}>
+                            <RefreshCw size={16} />
+                          </button>
+                          <button onClick={finishMatch} className="eva-button secondary">
+                            <Check size={18} /> Terminer
+                          </button>
+                        </>
                       ) : (
-                        <button onClick={() => removeMatch(index)} className="eva-button" style={{ background: 'transparent', color: '#ff4444', border: '1px solid #ff4444' }}>
-                          Supprimer
-                        </button>
+                        <>
+                          <button onClick={() => refreshMatch(index)} className="eva-button" title="Générer de nouveau" style={{ background: 'transparent', color: '#00f0ff', border: '1px solid #00f0ff', padding: '0.4rem', minWidth: 'auto' }}>
+                            <RefreshCw size={16} />
+                          </button>
+                          <button onClick={() => removeMatch(index)} className="eva-button" style={{ background: 'transparent', color: '#ff4444', border: '1px solid #ff4444' }}>
+                            Supprimer
+                          </button>
+                        </>
                       )
                     )}
                   </div>
@@ -250,7 +264,15 @@ function MatchMaker({ players, upcomingMatches, setUpcomingMatches, finishMatch,
                             className={`draggable-row ${dragOverId === player.id ? 'drag-over' : ''} ${!isAdmin ? 'cursor-default' : ''}`}
                           >
                             <td className="p-2 text-sm flex items-center gap-2">
-                              {isAdmin && <GripVertical size={14} className="opacity-30" />} {player.name}
+                              {isAdmin && <GripVertical size={14} className="opacity-30" />} 
+                              {player.avatar ? (
+                                <img src={player.avatar} alt={player.name} style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }} />
+                              ) : (
+                                <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', flexShrink: 0 }}>
+                                  {player.name.substring(0, 2).toUpperCase()}
+                                </div>
+                              )}
+                              {player.name}
                             </td>
                             <td className="p-2 text-right text-xs opacity-60">Niv. {player.level}</td>
                           </tr>
@@ -280,7 +302,15 @@ function MatchMaker({ players, upcomingMatches, setUpcomingMatches, finishMatch,
                             className={`draggable-row ${dragOverId === player.id ? 'drag-over' : ''} ${!isAdmin ? 'cursor-default' : ''}`}
                           >
                             <td className="p-2 text-sm flex items-center gap-2">
-                              {isAdmin && <GripVertical size={14} className="opacity-30" />} {player.name}
+                              {isAdmin && <GripVertical size={14} className="opacity-30" />} 
+                              {player.avatar ? (
+                                <img src={player.avatar} alt={player.name} style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' }} />
+                              ) : (
+                                <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', flexShrink: 0 }}>
+                                  {player.name.substring(0, 2).toUpperCase()}
+                                </div>
+                              )}
+                              {player.name}
                             </td>
                             <td className="p-2 text-right text-xs opacity-60">Niv. {player.level}</td>
                           </tr>
