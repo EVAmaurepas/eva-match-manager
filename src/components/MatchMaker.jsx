@@ -390,7 +390,10 @@ function MatchMaker({ players, upcomingMatches, setUpcomingMatches, finishMatch,
 
               {/* Team 1 */}
               <div className="p-4 border border-primary/30 bg-primary/5 rounded">
-                <h3 className="font-bold text-primary mb-4 text-sm">ÉQUIPE BLEUE ({manualTeam1.length}/4)</h3>
+                <h3 className="font-bold text-primary mb-4 text-sm flex justify-between items-center">
+                  <span>ÉQUIPE BLEUE ({manualTeam1.length}/4)</span>
+                  <span className="opacity-70 text-xs">Niv: {getTeamLevel(manualTeam1)}</span>
+                </h3>
                 <div className="flex flex-col gap-2">
                   {manualTeam1.map(p => (
                     <div key={p.id} className="flex justify-between items-center bg-black/40 p-2 rounded border border-primary/20">
@@ -417,7 +420,10 @@ function MatchMaker({ players, upcomingMatches, setUpcomingMatches, finishMatch,
 
               {/* Team 2 */}
               <div className="p-4 border border-secondary/30 bg-secondary/5 rounded">
-                <h3 className="font-bold text-secondary mb-4 text-sm">ÉQUIPE ROUGE ({manualTeam2.length}/4)</h3>
+                <h3 className="font-bold text-secondary mb-4 text-sm flex justify-between items-center">
+                  <span>ÉQUIPE ROUGE ({manualTeam2.length}/4)</span>
+                  <span className="opacity-70 text-xs">Niv: {getTeamLevel(manualTeam2)}</span>
+                </h3>
                 <div className="flex flex-col gap-2">
                   {manualTeam2.map(p => (
                     <div key={p.id} className="flex justify-between items-center bg-black/40 p-2 rounded border border-secondary/20">
