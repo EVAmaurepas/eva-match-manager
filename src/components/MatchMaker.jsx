@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Play, Flag, Swords, Check, GripVertical, RefreshCw, PenTool } from 'lucide-react';
+import { Play, Flag, Swords, Check, GripVertical, RefreshCw, PenTool, Plus } from 'lucide-react';
 
 // Helper: Get all combinations of size k from an array
 function getCombinations(array, k) {
@@ -371,13 +371,15 @@ function MatchMaker({ players, upcomingMatches, setUpcomingMatches, finishMatch,
                         <button 
                           onClick={() => manualTeam1.length < 4 && setManualTeam1([...manualTeam1, p])}
                           disabled={manualTeam1.length >= 4}
-                          className="px-2 py-1 bg-primary text-black font-bold text-xs rounded disabled:opacity-20 hover:opacity-80 transition"
-                        >B</button>
+                          className="p-1 bg-primary text-black rounded disabled:opacity-20 hover:opacity-80 transition"
+                          title="Ajouter à l'Équipe Bleue"
+                        ><Plus size={16} /></button>
                         <button 
                           onClick={() => manualTeam2.length < 4 && setManualTeam2([...manualTeam2, p])}
                           disabled={manualTeam2.length >= 4}
-                          className="px-2 py-1 bg-secondary text-white font-bold text-xs rounded disabled:opacity-20 hover:opacity-80 transition"
-                        >R</button>
+                          className="p-1 bg-secondary text-white rounded disabled:opacity-20 hover:opacity-80 transition"
+                          title="Ajouter à l'Équipe Rouge"
+                        ><Plus size={16} /></button>
                       </div>
                     </div>
                   ))}
