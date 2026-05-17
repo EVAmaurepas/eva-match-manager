@@ -653,6 +653,28 @@ function App() {
           </div>
         </div>
       )}
+
+      {/* Version de l'application - S'affiche en bas à droite de l'outil */}
+      <div 
+        style={{ 
+          position: 'fixed', 
+          bottom: '12px', 
+          right: '12px', 
+          zIndex: 1000, 
+          fontSize: '0.7rem', 
+          fontFamily: 'var(--font-display)', 
+          letterSpacing: '2px', 
+          opacity: 0.4, 
+          pointerEvents: 'none',
+          background: 'rgba(11, 12, 16, 0.6)',
+          padding: '2px 6px',
+          borderRadius: '4px',
+          border: '1px solid rgba(0, 240, 255, 0.15)'
+        }} 
+        className="glow-text text-primary"
+      >
+        V1.2.0
+      </div>
     </div>
   );
 }
