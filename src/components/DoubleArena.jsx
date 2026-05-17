@@ -142,6 +142,7 @@ export default function DoubleArena({
     e.preventDefault();
     setDragOverId(null);
     if (e.target) e.target.style.opacity = '1';
+    if (!isAdmin) return;
 
     if (!draggedItem || draggedItem.player.id === targetPlayer.id) return;
     if (draggedItem.matchIndex !== targetMatchIndex) return; // Only swap within the same match
@@ -174,6 +175,7 @@ export default function DoubleArena({
   };
 
   const generateRound = () => {
+    if (!isAdmin) return;
     if (activePlayers.length < 16) return;
 
     // 1. Calculate priority score for active players
@@ -281,6 +283,7 @@ export default function DoubleArena({
   };
 
   const handleSubstitute = (selectedPlayer) => {
+    if (!isAdmin) return;
     if (!substitutingPlayer) return;
     const { player: targetPlayer, teamKey, matchIndex } = substitutingPlayer;
 
@@ -323,6 +326,7 @@ export default function DoubleArena({
   };
 
   const validateRound = () => {
+    if (!isAdmin) return;
     if (!doubleArenaMatches) return;
 
     // Archive both matches with the current date
@@ -347,6 +351,7 @@ export default function DoubleArena({
   };
 
   const resetSession = () => {
+    if (!isAdmin) return;
     if (window.confirm("Voulez-vous réinitialiser toute la session Double Arène ? (Historique et compteurs remis à zéro)")) {
       setDoubleArenaHistory([]);
       setDoubleArenaMatches(null);
@@ -365,7 +370,7 @@ export default function DoubleArena({
           <p className="opacity-70 text-sm">Organisez des matchs simultanés sur deux arènes sans affecter la session classique.</p>
         </div>
         <div className="flex gap-2">
-          {doubleArenaHistory.length > 0 && (
+          {doubleArenaHistory.length > 0 && isAdmin && (
             <button onClick={resetSession} className="eva-button secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
               <RotateCcw size={14} /> Réinitialiser Session
             </button>
