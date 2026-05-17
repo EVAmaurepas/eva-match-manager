@@ -693,7 +693,7 @@ function App() {
         }} 
         className="glow-text text-primary"
       >
-        V1.6.0
+        V1.7.0
       </div>
     </div>
   );

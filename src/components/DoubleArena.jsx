@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Swords, Check, GripVertical, ArrowLeftRight, ShieldAlert, RotateCcw } from 'lucide-react';
+import { Swords, Check, GripVertical, ArrowLeftRight, ShieldAlert, RotateCcw, Trash2 } from 'lucide-react';
 
 const getTeamLevel = (team) => team.reduce((sum, p) => sum + p.level, 0);
 
@@ -326,6 +326,15 @@ export default function DoubleArena({
 
     setDoubleArenaHistory([...finishedMatches, ...doubleArenaHistory]);
     setDoubleArenaMatches(null);
+  };
+
+  const deleteRound = (rIdx) => {
+    if (!isAdmin) return;
+    if (window.confirm(`Êtes-vous sûr de vouloir supprimer le Round ${Math.floor(doubleArenaHistory.length / 2) - rIdx} de l'historique ?`)) {
+      const newHistory = [...doubleArenaHistory];
+      newHistory.splice(rIdx * 2, 2);
+      setDoubleArenaHistory(newHistory);
+    }
   };
 
   const resetSession = () => {
@@ -754,7 +763,19 @@ export default function DoubleArena({
                     <div key={roundNum} className="p-4 bg-white/5 border border-white/10 rounded flex flex-col gap-3">
                       <div className="flex justify-between items-center border-b border-white/10 pb-2">
                         <span className="font-bold text-primary text-sm">ROUND {roundNum}</span>
-                        <span className="text-xs opacity-50">{matchA.date ? new Date(matchA.date).toLocaleTimeString() : ''}</span>
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs opacity-50">{matchA.date ? new Date(matchA.date).toLocaleTimeString() : ''}</span>
+                          {isAdmin && (
+                            <button
+                              onClick={() => deleteRound(rIdx)}
+                              className="text-red-400 hover:text-red-300 transition-colors p-1"
+                              title="Supprimer ce round"
+                              style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
+                        </div>
                       </div>
                       <div className="grid grid-cols-2 gap-4 md-grid-cols-1 text-xs">
                         {/* Arena A */}
