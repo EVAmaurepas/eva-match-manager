@@ -371,15 +371,17 @@ function MatchMaker({ players, upcomingMatches, setUpcomingMatches, finishMatch,
                         <button 
                           onClick={() => manualTeam1.length < 4 && setManualTeam1([...manualTeam1, p])}
                           disabled={manualTeam1.length >= 4}
-                          className="p-1 bg-primary text-black rounded disabled:opacity-20 hover:opacity-80 transition"
+                          className="disabled:opacity-20 hover:opacity-80 transition"
+                          style={{ width: '24px', height: '24px', borderRadius: '50%', backgroundColor: 'var(--primary)', border: 'none', cursor: manualTeam1.length >= 4 ? 'not-allowed' : 'pointer' }}
                           title="Ajouter à l'Équipe Bleue"
-                        ><Plus size={16} /></button>
+                        ></button>
                         <button 
                           onClick={() => manualTeam2.length < 4 && setManualTeam2([...manualTeam2, p])}
                           disabled={manualTeam2.length >= 4}
-                          className="p-1 bg-secondary text-white rounded disabled:opacity-20 hover:opacity-80 transition"
+                          className="disabled:opacity-20 hover:opacity-80 transition"
+                          style={{ width: '24px', height: '24px', borderRadius: '50%', backgroundColor: 'var(--secondary)', border: 'none', cursor: manualTeam2.length >= 4 ? 'not-allowed' : 'pointer' }}
                           title="Ajouter à l'Équipe Rouge"
-                        ><Plus size={16} /></button>
+                        ></button>
                       </div>
                     </div>
                   ))}
