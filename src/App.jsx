@@ -613,7 +613,7 @@ function App() {
         </div>
       </header>
         
-      <nav className="flex md-wrap gap-2 w-full mb-8">
+      <nav className="flex md-wrap gap-2 w-full mb-8 items-center">
         <button 
           className={`eva-button ${activeTab === 'players' ? 'secondary' : ''}`}
           onClick={() => setActiveTab('players')}
@@ -629,13 +629,6 @@ function App() {
           Match Area
         </button>
         <button 
-          className={`eva-button ${activeTab === 'double_arena' ? 'secondary' : ''}`}
-          onClick={() => setActiveTab('double_arena')}
-        >
-          <Swords size={20} />
-          Double Arène
-        </button>
-        <button 
           className={`eva-button ${activeTab === 'history' ? 'secondary' : ''}`}
           onClick={() => setActiveTab('history')}
         >
@@ -648,6 +641,21 @@ function App() {
         >
           <History size={20} />
           Archives ({archives.length})
+        </button>
+
+        {/* Separator to emphasize the standalone nature of the Double Arena */}
+        <div style={{ height: '24px', width: '1px', backgroundColor: 'rgba(255, 255, 255, 0.15)', margin: '0 8px' }} className="hidden md:block"></div>
+
+        <button 
+          className={`eva-button ${activeTab === 'double_arena' ? 'secondary' : ''}`}
+          onClick={() => setActiveTab('double_arena')}
+          style={{
+            borderColor: activeTab === 'double_arena' ? '' : 'rgba(0, 240, 255, 0.25)',
+            background: activeTab === 'double_arena' ? '' : 'rgba(0, 240, 255, 0.02)',
+          }}
+        >
+          <Swords size={20} className={activeTab === 'double_arena' ? 'text-secondary' : 'text-primary'} />
+          Double Arène <span style={{ fontSize: '0.75rem', opacity: 0.8 }}>⚡ Standalone</span>
         </button>
       </nav>
 
@@ -757,7 +765,7 @@ function App() {
         }} 
         className="glow-text text-primary"
       >
-        V1.9.0
+        V1.9.1
       </div>
     </div>
   );
