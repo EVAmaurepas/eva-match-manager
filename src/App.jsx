@@ -3,8 +3,9 @@ import PlayerList from './components/PlayerList';
 import MatchMaker from './components/MatchMaker';
 import MatchHistory from './components/MatchHistory';
 import Archives from './components/Archives';
+import DoubleArena from './components/DoubleArena';
 import Login from './components/Login';
-import { Gamepad2, Users, History, Download, Upload, LogOut } from 'lucide-react';
+import { Gamepad2, Users, History, Download, Upload, LogOut, Swords } from 'lucide-react';
 
 // Helper to reconstruct histories and player stats from completed matches
 const rebuildStatsFromHistory = (currentPlayers, completedMatches) => {
@@ -111,6 +112,8 @@ function App() {
   const [showResetModal, setShowResetModal] = useState(false);
   const [archiveName, setArchiveName] = useState('');
   const [shouldArchive, setShouldArchive] = useState(true);
+  const [doubleArenaMatches, setDoubleArenaMatches] = useState(null);
+  const [doubleArenaHistory, setDoubleArenaHistory] = useState([]);
 
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     return sessionStorage.getItem('eva-auth') === 'true';
@@ -562,6 +565,13 @@ function App() {
           Match Area
         </button>
         <button 
+          className={`eva-button ${activeTab === 'double_arena' ? 'secondary' : ''}`}
+          onClick={() => setActiveTab('double_arena')}
+        >
+          <Swords size={20} />
+          Double Arène
+        </button>
+        <button 
           className={`eva-button ${activeTab === 'history' ? 'secondary' : ''}`}
           onClick={() => setActiveTab('history')}
         >
@@ -597,6 +607,16 @@ function App() {
             presenceHistory={presenceHistory}
             teamHistory={teamHistory}
             opponentHistory={opponentHistory}
+            isAdmin={userRole === 'admin'}
+          />
+        )}
+        {activeTab === 'double_arena' && (
+          <DoubleArena 
+            players={players}
+            doubleArenaMatches={doubleArenaMatches}
+            setDoubleArenaMatches={setDoubleArenaMatches}
+            doubleArenaHistory={doubleArenaHistory}
+            setDoubleArenaHistory={setDoubleArenaHistory}
             isAdmin={userRole === 'admin'}
           />
         )}
@@ -673,7 +693,7 @@ function App() {
         }} 
         className="glow-text text-primary"
       >
-        V1.3.0
+        V1.4.0
       </div>
     </div>
   );

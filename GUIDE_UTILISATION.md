@@ -40,11 +40,20 @@ Le cœur de l'application.
 - **Remplacement Manuel :** Si un joueur présent dans un match généré doit être remplacé (ex : fatigue ou indisponibilité), l'administrateur peut cliquer sur l'icône d'échange ($\rightleftarrows$) à côté de son nom. Une fenêtre affiche alors tous les joueurs actuellement sur le banc (avec leurs statistiques de jeu et temps d'attente), permettant d'effectuer le remplacement en un clic tout en recalculant automatiquement l'équilibrage de force des équipes.
 - **Validation :** Cliquer sur "Terminer le match" archive la rencontre dans l'historique et met à jour le compteur des joueurs.
 
-### 3. Historique
+### 3. Double Arène (Mode Simultané)
+
+Ce mode à part entière permet de faire jouer **16 joueurs simultanément** sur deux arènes différentes sans perturber le cycle de rotation de la session classique.
+
+- **Fonctionnement Découplé :** Les matchs et l'historique de ce mode sont totalement isolés (sans persistance sur Redis ni impact sur les scores de la session classique). L'historique et les statistiques de temps de jeu sont recalculés de manière transitoire pour la session en cours.
+- **Génération Simultanée :** L'algorithme sélectionne les 16 joueurs les plus prioritaires et utilise une répartition en "serpent" (snake distribution) selon les niveaux de force pour équilibrer globalement les deux arènes, puis équilibre de manière optimale les sous-équipes de 4v4.
+- **Remplacement :** Les boutons d'échange ($\rightleftarrows$) et le drag & drop de joueurs restent actifs pour ajuster la composition.
+- **Validation Synchronisée :** Les deux arènes doivent avoir terminé leur match respectif avant que l'administrateur ne puisse valider le round pour passer aux 2 matchs suivants.
+
+### 4. Historique
 
 Affiche tous les matchs joués lors de la session actuelle. Idéal pour vérifier un score ou une composition d'équipe passée.
 
-### 4. Archives
+### 5. Archives
 
 Permet de consulter les sessions précédentes (ex: "Tournoi du 15 Mai"). Chaque archive contient l'état complet des joueurs et des matchs à un instant T.
 
