@@ -673,7 +673,7 @@ function MatchMaker({
 
       {substitutingPlayer && (
         <div className="modal-overlay">
-          <div className="eva-card" style={{ maxWidth: '500px', width: '95%' }}>
+          <div className="eva-card" style={{ maxWidth: '800px', width: '95%' }}>
             <h2 className="text-secondary mb-2 flex items-center gap-2">
               <ArrowLeftRight className="text-secondary" /> REMPLACER UN JOUEUR
             </h2>
@@ -681,7 +681,7 @@ function MatchMaker({
               Sélectionnez un joueur du banc pour remplacer <strong className="text-primary">{substitutingPlayer.player.name}</strong> dans le match.
             </p>
             
-            <div className="flex flex-col gap-2 max-h-[50vh] overflow-y-auto mb-6 pr-1">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.75rem', maxHeight: '50vh', overflowY: 'auto', marginBottom: '1.5rem', paddingRight: '0.25rem' }}>
               {(() => {
                 const match = upcomingMatches[substitutingPlayer.matchIndex];
                 if (!match) return null;
@@ -689,7 +689,7 @@ function MatchMaker({
                 const benchPlayers = players.filter(p => !p.isPaused && !playingIds.includes(p.id));
 
                 if (benchPlayers.length === 0) {
-                  return <p className="text-center py-4 opacity-50 italic text-sm">Aucun joueur n'est disponible sur le banc.</p>;
+                  return <p className="text-center py-4 opacity-50 italic text-sm" style={{ gridColumn: '1 / -1' }}>Aucun joueur n'est disponible sur le banc.</p>;
                 }
 
                 return benchPlayers.map(p => (
