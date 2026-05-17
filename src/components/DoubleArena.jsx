@@ -53,6 +53,33 @@ export const computeDoubleArenaStats = (players, history) => {
   return stats;
 };
 
+export const computeCoArenaMatrix = (players, history) => {
+  const matrix = {};
+  
+  players.forEach(p1 => {
+    matrix[p1.id] = {};
+    players.forEach(p2 => {
+      matrix[p1.id][p2.id] = 0;
+    });
+  });
+
+  history.forEach(match => {
+    const playersInArena = [...match.team1, ...match.team2];
+    for (let i = 0; i < playersInArena.length; i++) {
+      for (let j = i + 1; j < playersInArena.length; j++) {
+        const id1 = playersInArena[i].id;
+        const id2 = playersInArena[j].id;
+        if (matrix[id1] && matrix[id2]) {
+          matrix[id1][id2] += 1;
+          matrix[id2][id1] += 1;
+        }
+      }
+    }
+  });
+
+  return matrix;
+};
+
 export default function DoubleArena({
   players,
   doubleArenaMatches,
@@ -67,6 +94,7 @@ export default function DoubleArena({
 
   const activePlayers = players.filter(p => !p.isPaused);
   const sessionStats = computeDoubleArenaStats(players, doubleArenaHistory);
+  const coArenaMatrix = computeCoArenaMatrix(players, doubleArenaHistory);
 
   const handleDragStart = (e, player, teamKey, matchIndex) => {
     if (!isAdmin) return;
@@ -156,17 +184,50 @@ export default function DoubleArena({
     // 2. Select top 16 players
     const selected16 = [...playerScores].sort((a, b) => b.priorityScore - a.priorityScore).slice(0, 16);
 
-    // 3. Snake distribution by level to form 2 balanced match pools
-    const sorted16 = [...selected16].sort((a, b) => b.level - a.level);
-    const groupA = [];
-    const groupB = [];
-    sorted16.forEach((p, index) => {
-      if (index % 4 === 0 || index % 4 === 3) {
-        groupA.push(p);
-      } else {
-        groupB.push(p);
+    // 3. Find the best split of 16 players into 2 groups of 8 to maximize mixing and balance average levels
+    const splits = getCombinations(selected16, 8);
+    let bestGroupA = null;
+    let bestGroupB = null;
+    let minCost = Infinity;
+
+    splits.forEach(groupA => {
+      const groupAIds = groupA.map(p => p.id);
+      const groupB = selected16.filter(p => !groupAIds.includes(p.id));
+
+      const levelSumA = groupA.reduce((sum, p) => sum + p.level, 0);
+      const levelSumB = groupB.reduce((sum, p) => sum + p.level, 0);
+      const levelDiff = Math.abs(levelSumA - levelSumB);
+
+      // Penalize average level differences heavily (weight 25)
+      const levelDiffCost = levelDiff * 25;
+
+      // Penalize players playing in the same arena together repeatedly (weight 1.5)
+      let coArenaCost = 0;
+      for (let i = 0; i < groupA.length; i++) {
+        for (let j = i + 1; j < groupA.length; j++) {
+          const p1 = groupA[i].id;
+          const p2 = groupA[j].id;
+          coArenaCost += (coArenaMatrix[p1]?.[p2] || 0) * 1.5;
+        }
+      }
+      for (let i = 0; i < groupB.length; i++) {
+        for (let j = i + 1; j < groupB.length; j++) {
+          const p1 = groupB[i].id;
+          const p2 = groupB[j].id;
+          coArenaCost += (coArenaMatrix[p1]?.[p2] || 0) * 1.5;
+        }
+      }
+
+      const totalCost = levelDiffCost + coArenaCost;
+      if (totalCost < minCost) {
+        minCost = totalCost;
+        bestGroupA = groupA;
+        bestGroupB = groupB;
       }
     });
+
+    const groupA = bestGroupA;
+    const groupB = bestGroupB;
 
     // 4. Balance each group into teams of 4v4
     const balanceGroup = (group, matchIdx) => {
