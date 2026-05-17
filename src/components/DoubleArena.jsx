@@ -272,7 +272,7 @@ export default function DoubleArena({
         levelDiff: minDiff,
         id: Date.now().toString() + '_' + matchIdx,
         finished: false,
-        arena: matchIdx === 0 ? 'A' : 'B'
+        arena: matchIdx === 0 ? '1' : '2'
       };
     };
 
@@ -419,7 +419,7 @@ export default function DoubleArena({
                   <div className="flex justify-between items-center mb-4 border-b border-primary/20 pb-2">
                     <div>
                       <h2 className="text-primary text-sm flex items-center gap-2">
-                        🛡️ ARÈNE A (BLEUE)
+                        🛡️ ARÈNE 1
                       </h2>
                       <span className="text-xs opacity-60">Écarts: {doubleArenaMatches[0].levelDiff} niv.</span>
                     </div>
@@ -538,7 +538,7 @@ export default function DoubleArena({
                   <div className="flex justify-between items-center mb-4 border-b border-secondary/20 pb-2">
                     <div>
                       <h2 className="text-secondary text-sm flex items-center gap-2">
-                        💥 ARÈNE B (ROUGE)
+                        💥 ARÈNE 2
                       </h2>
                       <span className="text-xs opacity-60">Écarts: {doubleArenaMatches[1].levelDiff} niv.</span>
                     </div>
@@ -553,7 +553,7 @@ export default function DoubleArena({
                       <table className="w-full">
                         <thead>
                           <tr>
-                            <th colSpan="2" className="text-secondary text-xs py-1 border-b border-secondary/15">ÉQUIPE ROUGE ({getTeamLevel(doubleArenaMatches[1].team1)})</th>
+                            <th colSpan="2" className="text-secondary text-xs py-1 border-b border-secondary/15">ÉQUIPE BLEUE ({getTeamLevel(doubleArenaMatches[1].team1)})</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -604,7 +604,7 @@ export default function DoubleArena({
                       <table className="w-full">
                         <thead>
                           <tr>
-                            <th colSpan="2" className="text-secondary text-xs py-1 border-b border-secondary/15">ÉQUIPE NOIRE ({getTeamLevel(doubleArenaMatches[1].team2)})</th>
+                            <th colSpan="2" className="text-secondary text-xs py-1 border-b border-secondary/15">ÉQUIPE ORANGE ({getTeamLevel(doubleArenaMatches[1].team2)})</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -748,14 +748,14 @@ export default function DoubleArena({
                       <div className="grid grid-cols-2 gap-4 md-grid-cols-1 text-xs">
                         {/* Arena A */}
                         <div className="flex flex-col gap-1 p-2 bg-primary/5 rounded border border-primary/10">
-                          <span className="font-bold text-primary">🛡️ Arène A</span>
+                          <span className="font-bold text-primary">🛡️ Arène 1</span>
                           <span>{matchA.team1.map(x=>x.name).join(', ')}</span>
                           <span className="opacity-50 text-[10px] text-center my-0.5">VS</span>
                           <span>{matchA.team2.map(x=>x.name).join(', ')}</span>
                         </div>
                         {/* Arena B */}
                         <div className="flex flex-col gap-1 p-2 bg-secondary/5 rounded border border-secondary/10">
-                          <span className="font-bold text-secondary">💥 Arène B</span>
+                          <span className="font-bold text-secondary">💥 Arène 2</span>
                           <span>{matchB.team1.map(x=>x.name).join(', ')}</span>
                           <span className="opacity-50 text-[10px] text-center my-0.5">VS</span>
                           <span>{matchB.team2.map(x=>x.name).join(', ')}</span>
@@ -778,7 +778,7 @@ export default function DoubleArena({
               <ArrowLeftRight className="text-secondary" /> REMPLACER UN JOUEUR
             </h2>
             <p className="mb-4 text-sm opacity-80">
-              Sélectionnez un joueur du banc pour remplacer <strong className="text-primary">{substitutingPlayer.player.name}</strong> dans l'arène {substitutingPlayer.matchIndex === 0 ? 'A' : 'B'}.
+              Sélectionnez un joueur du banc pour remplacer <strong className="text-primary">{substitutingPlayer.player.name}</strong> dans l'arène {substitutingPlayer.matchIndex === 0 ? '1' : '2'}.
             </p>
             
             <div className="grid grid-cols-2 gap-6 md-grid-cols-1 max-h-[60vh] overflow-y-auto mb-6 pr-1">
@@ -851,7 +851,7 @@ export default function DoubleArena({
                     {/* Section 2: Other Arena Players */}
                     <div className="flex flex-col gap-2">
                       <h3 className="text-secondary text-xs font-bold mb-2 border-b border-secondary/20 pb-1 uppercase tracking-wider">
-                        Échanger avec l'arène {otherMatchIndex === 0 ? 'A' : 'B'} (SWAP)
+                        Échanger avec l'arène {otherMatchIndex === 0 ? '1' : '2'} (SWAP)
                       </h3>
                       <div className="flex flex-col gap-2">
                         {otherArenaPlayers.length === 0 ? (
