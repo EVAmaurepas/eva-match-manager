@@ -35,15 +35,32 @@ export const computeDoubleArenaStats = (players, history) => {
 
   const chronologicalHistory = [...history].reverse();
 
+  // Group matches by round (same date/timestamp)
+  const matchesByDate = {};
   chronologicalHistory.forEach(match => {
-    const playingIds = [...match.team1.map(p => p.id), ...match.team2.map(p => p.id)];
-    
+    const key = match.date || 'unknown';
+    if (!matchesByDate[key]) {
+      matchesByDate[key] = [];
+    }
+    matchesByDate[key].push(match);
+  });
+
+  // Sort rounds chronologically
+  const sortedDates = Object.keys(matchesByDate).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+
+  sortedDates.forEach(date => {
+    const matchesInRound = matchesByDate[date];
+    const playingIds = [];
+    matchesInRound.forEach(match => {
+      playingIds.push(...match.team1.map(p => p.id), ...match.team2.map(p => p.id));
+    });
+
     activePlayers.forEach(p => {
       if (!stats[p.id]) return;
       if (playingIds.includes(p.id)) {
         stats[p.id].matchesPlayed += 1;
         stats[p.id].consecutiveBench = 0;
-        stats[p.id].lastPlayedAt = match.date ? new Date(match.date).getTime() : Date.now();
+        stats[p.id].lastPlayedAt = date && date !== 'unknown' ? new Date(date).getTime() : Date.now();
       } else {
         stats[p.id].consecutiveBench += 1;
       }
