@@ -6,7 +6,8 @@ const DEFAULT_USERS = {
 };
 
 function getRedisClient() {
-  const url = process.env.REDIS_URL || process.env.KV_URL || process.env.UPSTASH_REDIS_URL;
+  // Priorité aux nouvelles variables créées (KV_URL, UPSTASH_REDIS_URL) au cas où une ancienne REDIS_URL traîne
+  const url = process.env.KV_URL || process.env.UPSTASH_REDIS_URL || process.env.STORAGE_REDIS_URL || process.env.REDIS_URL;
   if (!url) return null;
   try {
     return new Redis(url, {
