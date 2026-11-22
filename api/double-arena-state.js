@@ -1,6 +1,21 @@
 import Redis from 'ioredis';
 
-const redis = new Redis(process.env.REDIS_URL || process.env.KV_URL || 'redis://localhost:6379');
+function getRedisClient() {
+  const url = process.env.REDIS_URL || process.env.KV_URL || process.env.UPSTASH_REDIS_URL;
+  if (!url) return null;
+  try {
+    return new Redis(url, {
+      connectTimeout: 2000,
+      maxRetriesPerRequest: 1,
+      enableReadyCheck: false,
+      lazyConnect: true,
+      retryStrategy: () => null
+    });
+  } catch (err) {
+    console.error("Redis init failed:", err.message);
+    return null;
+  }
+}
 
 export default async function handler(request, response) {
   // CORS Headers in case they call it from a different origin locally
@@ -16,25 +31,47 @@ export default async function handler(request, response) {
     return response.status(200).end();
   }
 
+  const redis = getRedisClient();
+  let redisAvailable = false;
+
+  if (redis) {
+    try {
+      await Promise.race([
+        redis.connect(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Connection timeout')), 2000))
+      ]);
+      redisAvailable = true;
+    } catch (e) {
+      console.warn("Redis connection failed or timed out:", e.message);
+      try { redis.disconnect(); } catch (_) {}
+    }
+  }
+
   if (request.method === 'GET') {
+    if (!redisAvailable) {
+      return response.status(200).json({});
+    }
     try {
       const state = await redis.get('eva-double-arena-state');
       const parsedState = state ? JSON.parse(state) : {};
       return response.status(200).json(parsedState);
     } catch (error) {
-      console.error("KV GET Error (Double Arena):", error);
-      return response.status(500).json({ error: 'Failed to read double arena state' });
+      console.warn("KV GET Error (Double Arena), fallback to empty:", error.message);
+      return response.status(200).json({});
     }
   }
 
   if (request.method === 'POST') {
+    if (!redisAvailable) {
+      return response.status(200).json({ success: true, saved: false, reason: 'db_offline' });
+    }
     try {
       const newState = request.body;
       await redis.set('eva-double-arena-state', JSON.stringify(newState));
-      return response.status(200).json({ success: true });
+      return response.status(200).json({ success: true, saved: true });
     } catch (error) {
-      console.error("KV SET Error (Double Arena):", error);
-      return response.status(500).json({ error: 'Failed to save double arena state' });
+      console.warn("KV SET Error (Double Arena):", error.message);
+      return response.status(200).json({ success: true, saved: false, error: error.message });
     }
   }
 
