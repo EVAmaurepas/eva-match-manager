@@ -533,22 +533,22 @@ function MatchMaker({
                   </div>
                 </div>
 
-                {/* Joueurs sur le banc pour ce match */}
-                {(() => {
+                {/* Joueurs actuellement sur le banc (uniquement pour le match en cours) */}
+                {index === 0 && (() => {
                   const playingIds = [...match.team1.map(p => p.id), ...match.team2.map(p => p.id)];
                   const benchPlayers = players.filter(p => !p.isPaused && !playingIds.includes(p.id));
                   if (benchPlayers.length === 0) return null;
                   return (
                     <div className="mt-4 pt-3 border-t border-white/10">
                       <div className="flex items-center gap-2 mb-2 text-xs font-bold tracking-wider opacity-75">
-                        <span className="text-secondary">⏳ SUR LE BANC ({benchPlayers.length}) :</span>
+                        <span className="text-secondary">⏳ ACTUELLEMENT SUR LE BANC ({benchPlayers.length}) :</span>
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {benchPlayers.map(bp => (
                           <div 
                             key={bp.id} 
                             className="flex items-center gap-2 px-2.5 py-1 rounded bg-white/5 border border-white/10 text-xs"
-                            title={bp.consecutiveBench > 0 ? `${bp.name} a passé ${bp.consecutiveBench} match(s) sur le banc` : bp.name}
+                            title={bp.consecutiveBench > 0 ? `${bp.name} a passé ${bp.consecutiveBench} match(s) consécutif(s) sur le banc` : bp.name}
                           >
                             {getPlayerAvatar(bp.id) ? (
                               <img src={getPlayerAvatar(bp.id)} alt={bp.name} style={{ width: '18px', height: '18px', borderRadius: '50%', objectFit: 'cover' }} />
@@ -567,7 +567,7 @@ function MatchMaker({
                                   border: '1px solid rgba(255, 0, 85, 0.4)'
                                 }}
                               >
-                                ⏳ {bp.consecutiveBench} {bp.consecutiveBench > 1 ? 'matchs' : 'match'}
+                                ⏳ {bp.consecutiveBench} {bp.consecutiveBench > 1 ? 'matchs d\'affilée' : 'match'}
                               </span>
                             )}
                           </div>
