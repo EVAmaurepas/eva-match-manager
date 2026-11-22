@@ -538,40 +538,55 @@ function MatchMaker({
                   const playingIds = [...match.team1.map(p => p.id), ...match.team2.map(p => p.id)];
                   const benchPlayers = players.filter(p => !p.isPaused && !playingIds.includes(p.id));
                   if (benchPlayers.length === 0) return null;
+
+                  // Trier pour afficher d'abord ceux qui attendent depuis le plus longtemps
+                  const sortedBench = [...benchPlayers].sort((a, b) => (b.consecutiveBench || 0) - (a.consecutiveBench || 0));
+
                   return (
                     <div className="mt-4 pt-3 border-t border-white/10">
-                      <div className="flex items-center gap-2 mb-2 text-xs font-bold tracking-wider opacity-75">
-                        <span className="text-secondary">⏳ ACTUELLEMENT SUR LE BANC ({benchPlayers.length}) :</span>
+                      <div className="flex items-center justify-between mb-2.5 text-xs font-bold tracking-wider opacity-80 flex-wrap gap-2">
+                        <span className="text-secondary flex items-center gap-1.5">
+                          ⏳ SUR LE BANC ({benchPlayers.length})
+                        </span>
+                        <span className="text-[11px] opacity-50 font-normal">
+                          Attente consécutive (ce match inclus)
+                        </span>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        {benchPlayers.map(bp => (
-                          <div 
-                            key={bp.id} 
-                            className="flex items-center gap-2 px-2.5 py-1 rounded bg-white/5 border border-white/10 text-xs"
-                            title={bp.consecutiveBench > 0 ? `${bp.name} a passé ${bp.consecutiveBench} match(s) consécutif(s) sur le banc` : bp.name}
-                          >
-                            {getPlayerAvatar(bp.id) ? (
-                              <img src={getPlayerAvatar(bp.id)} alt={bp.name} style={{ width: '18px', height: '18px', borderRadius: '50%', objectFit: 'cover' }} />
-                            ) : (
-                              <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px' }}>
-                                {bp.name.substring(0, 2).toUpperCase()}
-                              </div>
-                            )}
-                            <span className="font-semibold">{bp.name}</span>
-                            {bp.consecutiveBench > 0 && (
+                        {sortedBench.map(bp => {
+                          const waitCount = (bp.consecutiveBench || 0) + 1;
+                          const isHighWait = waitCount >= 2;
+                          return (
+                            <div 
+                              key={bp.id} 
+                              className="flex items-center gap-2 px-2.5 py-1.5 rounded text-xs transition-all"
+                              style={{
+                                background: isHighWait ? 'rgba(255, 0, 85, 0.08)' : 'rgba(255, 255, 255, 0.04)',
+                                border: isHighWait ? '1px solid rgba(255, 0, 85, 0.35)' : '1px solid rgba(255, 255, 255, 0.08)',
+                              }}
+                              title={`${bp.name} : sur le banc depuis ${waitCount} match${waitCount > 1 ? 's' : ''} consécutif${waitCount > 1 ? 's' : ''}`}
+                            >
+                              {getPlayerAvatar(bp.id) ? (
+                                <img src={getPlayerAvatar(bp.id)} alt={bp.name} style={{ width: '20px', height: '20px', borderRadius: '50%', objectFit: 'cover' }} />
+                              ) : (
+                                <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px' }}>
+                                  {bp.name.substring(0, 2).toUpperCase()}
+                                </div>
+                              )}
+                              <span className="font-semibold">{bp.name}</span>
                               <span 
-                                className="px-1.5 py-0.5 rounded font-bold text-xs"
+                                className="px-1.5 py-0.5 rounded font-bold text-[11px] tracking-wide inline-flex items-center gap-1"
                                 style={{
-                                  background: bp.consecutiveBench > 1 ? 'rgba(255, 0, 85, 0.3)' : 'rgba(255, 0, 85, 0.15)',
-                                  color: '#ff4081',
-                                  border: '1px solid rgba(255, 0, 85, 0.4)'
+                                  background: isHighWait ? 'rgba(255, 0, 85, 0.25)' : 'rgba(0, 240, 255, 0.12)',
+                                  color: isHighWait ? '#ff4081' : '#00f0ff',
+                                  border: isHighWait ? '1px solid rgba(255, 0, 85, 0.4)' : '1px solid rgba(0, 240, 255, 0.25)'
                                 }}
                               >
-                                ⏳ {bp.consecutiveBench} {bp.consecutiveBench > 1 ? 'matchs d\'affilée' : 'match'}
+                                ⏳ {waitCount} {waitCount > 1 ? 'matchs' : 'match'}
                               </span>
-                            )}
-                          </div>
-                        ))}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   );
