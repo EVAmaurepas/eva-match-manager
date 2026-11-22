@@ -113,6 +113,7 @@ function App() {
   const [showResetModal, setShowResetModal] = useState(false);
   const [archiveName, setArchiveName] = useState('');
   const [shouldArchive, setShouldArchive] = useState(true);
+  const [keepPlayers, setKeepPlayers] = useState(true);
   const [doubleArenaMatches, setDoubleArenaMatches] = useState(null);
   const [doubleArenaHistory, setDoubleArenaHistory] = useState([]);
 
@@ -171,6 +172,14 @@ function App() {
         isPaused: p.isPaused ?? false,
         avatar: p.avatar || RECOVERED_AVATARS_BY_NAME[(p.name || '').toLowerCase()] || null
       }));
+
+      // S'il n'y a aucun match dans l'historique de la session, réinitialise les compteurs de banc et de matchs
+      if (loadedHistory.length === 0) {
+        sanitizedPlayers.forEach(p => {
+          p.matchesPlayed = 0;
+          p.consecutiveBench = 0;
+        });
+      }
 
       setPlayers(sanitizedPlayers);
       
@@ -262,6 +271,14 @@ function App() {
         isPaused: p.isPaused ?? false,
         avatar: p.avatar || RECOVERED_AVATARS_BY_NAME[(p.name || '').toLowerCase()] || null
       }));
+
+      // S'il n'y a aucun match dans l'historique de la session, réinitialise les compteurs de banc et de matchs
+      if (loadedHistory.length === 0) {
+        sanitizedPlayers.forEach(p => {
+          p.matchesPlayed = 0;
+          p.consecutiveBench = 0;
+        });
+      }
 
       setPlayers(sanitizedPlayers);
       if (savedMatches) setUpcomingMatches(JSON.parse(savedMatches));
@@ -554,16 +571,40 @@ function App() {
       setArchives([newArchive, ...archives]);
     }
 
-    setPlayers([]);
+    if (keepPlayers) {
+      // Conserve les joueurs du roster et remet tous les compteurs de session et de banc à zéro
+      const resetPlayers = players.map(p => ({
+        ...p,
+        matchesPlayed: 0,
+        consecutiveBench: 0,
+        lastPlayedAt: 0,
+        isPaused: false
+      }));
+      setPlayers(resetPlayers);
+      localStorage.setItem('eva-players', JSON.stringify(resetPlayers));
+    } else {
+      setPlayers([]);
+      localStorage.removeItem('eva-players');
+    }
+
     setUpcomingMatches([]);
     setMatchHistory([]);
     setPresenceHistory({});
     setTeamHistory({});
     setOpponentHistory({});
+    setDoubleArenaMatches(null);
+    setDoubleArenaHistory([]);
+    localStorage.removeItem('eva-upcoming');
+    localStorage.removeItem('eva-history');
+    localStorage.removeItem('eva-double-arena-matches');
+    localStorage.removeItem('eva-double-arena-history');
     setShowResetModal(false);
     setArchiveName('');
-    setActiveTab('players');
-    alert("Application réinitialisée !");
+    setActiveTab(keepPlayers ? 'match' : 'players');
+    alert(keepPlayers 
+      ? "Session réinitialisée ! Les compteurs de matchs et de banc ont été remis à zéro."
+      : "Application et roster réinitialisés !"
+    );
   };
 
   if (!isAuthenticated) {
@@ -723,6 +764,16 @@ function App() {
             <p className="mb-6 opacity-80">Êtes-vous sûr de vouloir tout réinitialiser ? Cette action est irréversible (sauf si vous archivez).</p>
             
             <div className="flex flex-col gap-4 mb-8">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={keepPlayers} 
+                  onChange={(e) => setKeepPlayers(e.target.checked)}
+                  style={{ width: '20px', height: '20px' }}
+                />
+                <span>Conserver les joueurs (remettre compteurs & banc à 0)</span>
+              </label>
+
               <label className="flex items-center gap-3 cursor-pointer">
                 <input 
                   type="checkbox" 
