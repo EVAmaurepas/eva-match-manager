@@ -4,8 +4,9 @@ import MatchMaker from './components/MatchMaker';
 import MatchHistory from './components/MatchHistory';
 import Archives from './components/Archives';
 import DoubleArena from './components/DoubleArena';
+import PlayerStats from './components/PlayerStats';
 import Login from './components/Login';
-import { Gamepad2, Users, History, Download, Upload, LogOut, Swords } from 'lucide-react';
+import { Gamepad2, Users, History, Download, Upload, LogOut, Swords, BarChart2 } from 'lucide-react';
 import { RECOVERED_PLAYERS, RECOVERED_AVATARS_BY_NAME } from './data/defaultPlayers';
 
 // Helper to reconstruct histories and player stats from completed matches
@@ -674,6 +675,13 @@ function App() {
           Roster ({players.length})
         </button>
         <button 
+          className={`eva-button ${activeTab === 'stats' ? 'secondary' : ''}`}
+          onClick={() => setActiveTab('stats')}
+        >
+          <BarChart2 size={20} />
+          Stats Joueurs
+        </button>
+        <button 
           className={`eva-button ${activeTab === 'match' ? 'secondary' : ''}`}
           onClick={() => setActiveTab('match')}
         >
@@ -720,6 +728,13 @@ function App() {
             onDelete={deletePlayer}
             isAdmin={userRole === 'admin'}
             currentMatch={upcomingMatches[0]}
+          />
+        )}
+        {activeTab === 'stats' && (
+          <PlayerStats 
+            players={players}
+            matchHistory={matchHistory}
+            doubleArenaHistory={doubleArenaHistory}
           />
         )}
         {activeTab === 'match' && (
