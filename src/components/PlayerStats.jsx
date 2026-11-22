@@ -6,18 +6,41 @@ import {
   Swords, 
   Search, 
   Calendar, 
-  ChevronRight, 
+  ChevronDown, 
+  ChevronUp, 
   CheckCircle2, 
-  Award,
-  Sparkles,
-  Layers
+  Check,
+  ChevronRight
 } from 'lucide-react';
 
 function PlayerStats({ players = [], matchHistory = [], doubleArenaHistory = [] }) {
-  const [selectedPlayerId, setSelectedPlayerId] = useState(null);
+  // Set of player IDs that are currently expanded in the accordion
+  const [expandedPlayerIds, setExpandedPlayerIds] = useState(new Set());
   const [filterPlayedOnly, setFilterPlayedOnly] = useState(true);
   const [historySource, setHistorySource] = useState('all'); // 'all', 'classic', 'double'
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Toggle single player accordion
+  const togglePlayer = (id) => {
+    setExpandedPlayerIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  // Toggle all players accordion
+  const toggleAll = (expandAll, playerList) => {
+    if (expandAll) {
+      setExpandedPlayerIds(new Set(playerList.map(p => p.id)));
+    } else {
+      setExpandedPlayerIds(new Set());
+    }
+  };
 
   // Normalize match history based on selected source
   const allMatches = useMemo(() => {
@@ -51,24 +74,21 @@ function PlayerStats({ players = [], matchHistory = [], doubleArenaHistory = [] 
   const playerStatsMap = useMemo(() => {
     const stats = {};
 
-    // Initialize for all known players
     players.forEach(p => {
       stats[p.id] = {
         player: p,
         matchesPlayed: 0,
-        teammates: {}, // id -> { name, avatar, level, count }
-        opponents: {}, // id -> { name, avatar, level, count }
+        teammates: {}, // id -> { id, name, avatar, level, count }
+        opponents: {}, // id -> { id, name, avatar, level, count }
         matches: []
       };
     });
 
-    // Process all matches
     allMatches.forEach(match => {
       const team1Ids = (match.team1 || []).map(p => p.id);
       const team2Ids = (match.team2 || []).map(p => p.id);
 
-      // Helper to process player in team
-      const processPlayer = (player, myTeamIds, enemyTeamIds, myTeamArr, enemyTeamArr, teamColor) => {
+      const processPlayer = (player, myTeamArr, enemyTeamArr, teamColor) => {
         if (!stats[player.id]) {
           stats[player.id] = {
             player,
@@ -89,7 +109,7 @@ function PlayerStats({ players = [], matchHistory = [], doubleArenaHistory = [] 
           enemyTeam: enemyTeamArr
         });
 
-        // Teammates
+        // Teammates in same team
         myTeamArr.forEach(mate => {
           if (mate.id === player.id) return;
           if (!stats[player.id].teammates[mate.id]) {
@@ -105,7 +125,7 @@ function PlayerStats({ players = [], matchHistory = [], doubleArenaHistory = [] 
           stats[player.id].teammates[mate.id].count += 1;
         });
 
-        // Opponents
+        // Opponents in enemy team
         enemyTeamArr.forEach(opp => {
           if (!stats[player.id].opponents[opp.id]) {
             const fullP = players.find(x => x.id === opp.id) || opp;
@@ -121,8 +141,8 @@ function PlayerStats({ players = [], matchHistory = [], doubleArenaHistory = [] 
         });
       };
 
-      match.team1.forEach(p => processPlayer(p, team1Ids, team2Ids, match.team1, match.team2, 'Bleue'));
-      match.team2.forEach(p => processPlayer(p, team2Ids, team1Ids, match.team2, match.team1, 'Rouge'));
+      (match.team1 || []).forEach(p => processPlayer(p, match.team1, match.team2, 'Bleue'));
+      (match.team2 || []).forEach(p => processPlayer(p, match.team2, match.team1, 'Rouge'));
     });
 
     return stats;
@@ -147,7 +167,7 @@ function PlayerStats({ players = [], matchHistory = [], doubleArenaHistory = [] 
       list = list.filter(p => p.name.toLowerCase().includes(q));
     }
 
-    // Sort by matches played descending, then alphabetical
+    // Sort by matches played descending, then by name
     return list.sort((a, b) => {
       if (b.matchesPlayedTotal !== a.matchesPlayedTotal) {
         return b.matchesPlayedTotal - a.matchesPlayedTotal;
@@ -156,431 +176,508 @@ function PlayerStats({ players = [], matchHistory = [], doubleArenaHistory = [] 
     });
   }, [players, playerStatsMap, filterPlayedOnly, searchQuery]);
 
-  // Active selected player stats
-  const activeStats = useMemo(() => {
-    if (!selectedPlayerId) {
-      // Default to the first player in the filtered list if available
-      return filteredPlayers.length > 0 ? playerStatsMap[filteredPlayers[0].id] : null;
-    }
-    return playerStatsMap[selectedPlayerId] || null;
-  }, [selectedPlayerId, filteredPlayers, playerStatsMap]);
-
-  const currentSelectedId = activeStats?.player?.id;
-
-  // Sorted teammates & opponents
-  const sortedTeammates = useMemo(() => {
-    if (!activeStats) return [];
-    return Object.values(activeStats.teammates).sort((a, b) => b.count - a.count);
-  }, [activeStats]);
-
-  const sortedOpponents = useMemo(() => {
-    if (!activeStats) return [];
-    return Object.values(activeStats.opponents).sort((a, b) => b.count - a.count);
-  }, [activeStats]);
-
-  const maxTeammateCount = sortedTeammates[0]?.count || 1;
-  const maxOpponentCount = sortedOpponents[0]?.count || 1;
+  const totalPlayedCount = players.filter(p => (playerStatsMap[p.id]?.matchesPlayed || 0) > 0).length;
 
   return (
-    <div className="grid gap-6">
-      {/* Header Controls */}
-      <div className="eva-card flex flex-wrap justify-between items-center gap-4">
-        <div>
-          <h2 className="glow-text text-primary flex items-center gap-2 mb-1">
-            <BarChart2 className="text-primary" size={24} />
-            Statistiques & Synergies Joueurs
-          </h2>
-          <p className="text-xs opacity-70">
-            Visualisez qui a joué avec qui, le nombre d'affrontements et l'historique complet par joueur.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3 flex-wrap">
-          {/* Source Filter */}
-          <div className="flex bg-black/40 border border-white/10 rounded p-1 text-xs">
-            <button
-              onClick={() => setHistorySource('all')}
-              className={`px-3 py-1 rounded transition-all font-bold ${historySource === 'all' ? 'bg-primary text-black' : 'text-white/70 hover:text-white'}`}
-            >
-              Tous ({allMatches.length} matchs)
-            </button>
-            <button
-              onClick={() => setHistorySource('classic')}
-              className={`px-3 py-1 rounded transition-all font-bold ${historySource === 'classic' ? 'bg-primary text-black' : 'text-white/70 hover:text-white'}`}
-            >
-              Arène Simple ({matchHistory.length})
-            </button>
-            <button
-              onClick={() => setHistorySource('double')}
-              className={`px-3 py-1 rounded transition-all font-bold ${historySource === 'double' ? 'bg-primary text-black' : 'text-white/70 hover:text-white'}`}
-            >
-              Double Arène ({doubleArenaHistory.length})
-            </button>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%' }}>
+      {/* Header card with filters */}
+      <div className="eva-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+          <div>
+            <h2 className="glow-text text-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+              <BarChart2 size={24} className="text-primary" />
+              Statistiques & Synergies Joueurs
+            </h2>
+            <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.8rem', opacity: 0.7 }}>
+              Cliquez sur n'importe quel joueur pour dérouler ses coéquipiers, ses adversaires et ses matchs.
+            </p>
           </div>
 
-          {/* Toggle Played Only */}
-          <button
-            onClick={() => setFilterPlayedOnly(!filterPlayedOnly)}
-            className={`eva-button ${filterPlayedOnly ? '' : 'secondary'}`}
-            style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', minWidth: 'auto' }}
-          >
-            {filterPlayedOnly ? <CheckCircle2 size={14} /> : <Users size={14} />}
-            {filterPlayedOnly ? 'Joueurs Ayant Joué' : 'Tous les Joueurs'}
-          </button>
+          {/* Source filters */}
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.75rem', opacity: 0.6, textTransform: 'uppercase', letterSpacing: '1px' }}>Mode :</span>
+            <div style={{ display: 'flex', background: 'rgba(0,0,0,0.4)', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.1)', padding: '2px' }}>
+              <button
+                type="button"
+                onClick={() => setHistorySource('all')}
+                style={{
+                  background: historySource === 'all' ? 'var(--primary)' : 'transparent',
+                  color: historySource === 'all' ? '#000' : 'rgba(255,255,255,0.7)',
+                  border: 'none',
+                  padding: '0.3rem 0.6rem',
+                  borderRadius: '3px',
+                  fontSize: '0.75rem',
+                  fontWeight: 'bold',
+                  cursor: 'pointer'
+                }}
+              >
+                Tous ({allMatches.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setHistorySource('classic')}
+                style={{
+                  background: historySource === 'classic' ? 'var(--primary)' : 'transparent',
+                  color: historySource === 'classic' ? '#000' : 'rgba(255,255,255,0.7)',
+                  border: 'none',
+                  padding: '0.3rem 0.6rem',
+                  borderRadius: '3px',
+                  fontSize: '0.75rem',
+                  fontWeight: 'bold',
+                  cursor: 'pointer'
+                }}
+              >
+                Arène Simple ({matchHistory.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setHistorySource('double')}
+                style={{
+                  background: historySource === 'double' ? 'var(--primary)' : 'transparent',
+                  color: historySource === 'double' ? '#000' : 'rgba(255,255,255,0.7)',
+                  border: 'none',
+                  padding: '0.3rem 0.6rem',
+                  borderRadius: '3px',
+                  fontSize: '0.75rem',
+                  fontWeight: 'bold',
+                  cursor: 'pointer'
+                }}
+              >
+                Double Arène ({doubleArenaHistory.length})
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
 
-      {/* Main Layout: Left Roster Selection + Right Detailed Player Dossier */}
-      <div className="grid grid-cols-12 gap-6 items-start">
-        {/* Left Column: Player Selector (5 cols) */}
-        <div className="col-span-12 lg:col-span-4 flex flex-col gap-3">
-          <div className="eva-card p-4">
-            <div className="flex items-center gap-2 bg-black/40 border border-white/10 rounded px-3 py-2 mb-3">
-              <Search size={16} className="opacity-50" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Rechercher un joueur..."
-                className="bg-transparent border-none outline-none text-xs w-full text-white placeholder-white/40"
-              />
-            </div>
+        {/* Search bar & filter buttons */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', paddingTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+          {/* Search box with dark styling */}
+          <div style={{ position: 'relative', width: '280px', maxWidth: '100%' }}>
+            <Search size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }} />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Rechercher un joueur..."
+              className="eva-input"
+              style={{
+                paddingLeft: '2rem',
+                paddingTop: '0.4rem',
+                paddingBottom: '0.4rem',
+                fontSize: '0.85rem'
+              }}
+            />
+          </div>
 
-            <div className="flex justify-between items-center text-xs opacity-60 mb-2 px-1">
-              <span>Joueurs ({filteredPlayers.length})</span>
-              <span>Matchs Joués</span>
-            </div>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            {/* Toggle Played Only */}
+            <button
+              type="button"
+              onClick={() => setFilterPlayedOnly(!filterPlayedOnly)}
+              className={`eva-button ${filterPlayedOnly ? '' : 'secondary'}`}
+              style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', minWidth: 'auto' }}
+            >
+              {filterPlayedOnly ? <CheckCircle2 size={14} /> : <Users size={14} />}
+              {filterPlayedOnly ? `Ont joué (${totalPlayedCount})` : `Tous les joueurs (${players.length})`}
+            </button>
 
-            {filteredPlayers.length === 0 ? (
-              <p className="text-center py-8 opacity-50 text-xs italic">
-                {filterPlayedOnly ? "Aucun joueur n'a encore disputé de match." : "Aucun joueur trouvé."}
-              </p>
-            ) : (
-              <div className="flex flex-col gap-1.5 max-h-[600px] overflow-y-auto pr-1">
-                {filteredPlayers.map(p => {
-                  const isSelected = p.id === currentSelectedId;
-                  return (
-                    <div
-                      key={p.id}
-                      onClick={() => setSelectedPlayerId(p.id)}
-                      className={`flex items-center justify-between p-2.5 rounded cursor-pointer transition-all ${
-                        isSelected 
-                          ? 'border border-primary' 
-                          : 'border border-transparent bg-white/5 hover:bg-white/10'
-                      }`}
-                      style={{
-                        backgroundColor: isSelected ? 'rgba(0, 240, 255, 0.12)' : undefined,
-                        boxShadow: isSelected ? '0 0 12px rgba(0, 240, 255, 0.2)' : 'none'
-                      }}
-                    >
-                      <div className="flex items-center gap-2.5 overflow-hidden">
-                        {p.avatar ? (
-                          <img 
-                            src={p.avatar} 
-                            alt={p.name} 
-                            style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} 
-                          />
-                        ) : (
-                          <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', flexShrink: 0 }}>
-                            {p.name.substring(0, 2).toUpperCase()}
-                          </div>
-                        )}
-                        <div className="flex flex-col text-left truncate">
-                          <span className="font-bold text-xs truncate">{p.name}</span>
-                          <span className="text-[10px] opacity-60">Niveau {p.level}</span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <span 
-                          className="px-2 py-0.5 rounded text-xs font-bold"
-                          style={{
-                            background: p.matchesPlayedTotal > 0 ? 'rgba(0, 255, 136, 0.15)' : 'rgba(255, 255, 255, 0.05)',
-                            color: p.matchesPlayedTotal > 0 ? '#00ff88' : 'rgba(255, 255, 255, 0.4)',
-                            border: p.matchesPlayedTotal > 0 ? '1px solid rgba(0, 255, 136, 0.3)' : '1px solid rgba(255, 255, 255, 0.1)'
-                          }}
-                        >
-                          {p.matchesPlayedTotal} {p.matchesPlayedTotal > 1 ? 'matchs' : 'match'}
-                        </span>
-                        <ChevronRight size={14} className={isSelected ? 'text-primary' : 'opacity-30'} />
-                      </div>
-                    </div>
-                  );
-                })}
+            {/* Expand all / Collapse all */}
+            {filteredPlayers.length > 0 && (
+              <div style={{ display: 'flex', gap: '0.25rem' }}>
+                <button
+                  type="button"
+                  onClick={() => toggleAll(true, filteredPlayers)}
+                  className="eva-button"
+                  style={{ padding: '0.35rem 0.6rem', fontSize: '0.75rem', minWidth: 'auto', background: 'transparent', color: 'rgba(255,255,255,0.7)', borderColor: 'rgba(255,255,255,0.2)' }}
+                  title="Dérouler tous les joueurs"
+                >
+                  <ChevronDown size={14} /> Tout dérouler
+                </button>
+                <button
+                  type="button"
+                  onClick={() => toggleAll(false, filteredPlayers)}
+                  className="eva-button"
+                  style={{ padding: '0.35rem 0.6rem', fontSize: '0.75rem', minWidth: 'auto', background: 'transparent', color: 'rgba(255,255,255,0.7)', borderColor: 'rgba(255,255,255,0.2)' }}
+                  title="Replier tous les joueurs"
+                >
+                  <ChevronUp size={14} /> Tout replier
+                </button>
               </div>
             )}
           </div>
         </div>
+      </div>
 
-        {/* Right Column: Player Stats Dossier (7 cols) */}
-        <div className="col-span-12 lg:col-span-8">
-          {!activeStats ? (
-            <div className="eva-card text-center py-16">
-              <Users size={48} className="mx-auto mb-3 opacity-30 text-primary" />
-              <h3 className="text-lg font-bold opacity-80">Sélectionnez un joueur</h3>
-              <p className="text-xs opacity-50">Cliquez sur un joueur dans la liste de gauche pour afficher ses synergies.</p>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-6">
-              {/* Profile Card */}
-              <div className="eva-card p-6 border border-primary/30">
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                  <div className="flex items-center gap-4">
-                    {activeStats.player.avatar ? (
+      {/* Accordion Roster List */}
+      {filteredPlayers.length === 0 ? (
+        <div className="eva-card" style={{ textAlign: 'center', padding: '3rem 1rem' }}>
+          <Users size={48} style={{ margin: '0 auto 1rem auto', opacity: 0.3, color: 'var(--primary)' }} />
+          <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>Aucun joueur trouvé</h3>
+          <p style={{ fontSize: '0.85rem', opacity: 0.6 }}>
+            {filterPlayedOnly ? "Aucun joueur n'a encore disputé de match dans ce mode." : "Aucun joueur ne correspond à votre recherche."}
+          </p>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          {filteredPlayers.map((player, index) => {
+            const isExpanded = expandedPlayerIds.has(player.id);
+            const stats = playerStatsMap[player.id] || { matchesPlayed: 0, teammates: {}, opponents: {}, matches: [] };
+            const teammatesList = Object.values(stats.teammates).sort((a, b) => b.count - a.count);
+            const opponentsList = Object.values(stats.opponents).sort((a, b) => b.count - a.count);
+            const maxTeammate = teammatesList[0]?.count || 1;
+            const maxOpponent = opponentsList[0]?.count || 1;
+
+            return (
+              <div 
+                key={player.id} 
+                className="eva-card"
+                style={{
+                  padding: 0,
+                  overflow: 'hidden',
+                  border: isExpanded ? '1px solid var(--primary)' : '1px solid rgba(0, 240, 255, 0.2)',
+                  boxShadow: isExpanded ? '0 0 15px rgba(0, 240, 255, 0.15)' : 'none',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                {/* Clickable Row Header (Always visible) */}
+                <div 
+                  onClick={() => togglePlayer(player.id)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '0.85rem 1.25rem',
+                    cursor: 'pointer',
+                    background: isExpanded ? 'rgba(0, 240, 255, 0.08)' : 'rgba(255, 255, 255, 0.02)',
+                    transition: 'background 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isExpanded) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)';
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isExpanded) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)';
+                  }}
+                >
+                  {/* Left: Avatar + Name + Level */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                    <span style={{ fontSize: '0.8rem', opacity: 0.4, minWidth: '20px', fontWeight: 'bold' }}>
+                      #{index + 1}
+                    </span>
+
+                    {player.avatar ? (
                       <img 
-                        src={activeStats.player.avatar} 
-                        alt={activeStats.player.name} 
-                        style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--primary)' }} 
+                        src={player.avatar} 
+                        alt={player.name} 
+                        style={{ width: '38px', height: '38px', borderRadius: '50%', objectFit: 'cover', border: isExpanded ? '2px solid var(--primary)' : '1px solid rgba(255,255,255,0.2)' }} 
                       />
                     ) : (
-                      <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(0, 240, 255, 0.15)', border: '2px solid var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 'bold' }}>
-                        {activeStats.player.name.substring(0, 2).toUpperCase()}
+                      <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 'bold', border: isExpanded ? '2px solid var(--primary)' : '1px solid rgba(255,255,255,0.2)' }}>
+                        {player.name.substring(0, 2).toUpperCase()}
                       </div>
                     )}
+
                     <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <h2 className="text-2xl font-bold tracking-wide">{activeStats.player.name}</h2>
-                        <span 
-                          className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider"
-                          style={{
-                            background: activeStats.player.isPaused ? 'rgba(255, 0, 85, 0.15)' : 'rgba(0, 255, 136, 0.15)',
-                            color: activeStats.player.isPaused ? '#ff4081' : '#00ff88',
-                            border: activeStats.player.isPaused ? '1px solid rgba(255, 0, 85, 0.3)' : '1px solid rgba(0, 255, 136, 0.3)'
-                          }}
-                        >
-                          {activeStats.player.isPaused ? 'En Pause' : 'Actif'}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ fontWeight: 'bold', fontSize: '1rem', color: isExpanded ? 'var(--primary)' : '#fff' }}>
+                          {player.name}
+                        </span>
+                        {player.isPaused && (
+                          <span style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem', borderRadius: '3px', background: 'rgba(255,0,85,0.2)', color: '#ff4081', border: '1px solid rgba(255,0,85,0.4)', fontWeight: 'bold' }}>
+                            EN PAUSE
+                          </span>
+                        )}
+                      </div>
+                      <span style={{ fontSize: '0.75rem', opacity: 0.6 }}>
+                        Niveau {player.level} / 10
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Right: Matches Played Badge + Accordion Chevron */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <div style={{ textAlign: 'right' }}>
+                      <span 
+                        style={{
+                          display: 'inline-block',
+                          padding: '0.25rem 0.6rem',
+                          borderRadius: '4px',
+                          fontSize: '0.8rem',
+                          fontWeight: 'bold',
+                          background: stats.matchesPlayed > 0 ? 'rgba(0, 255, 136, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                          color: stats.matchesPlayed > 0 ? '#00ff88' : 'rgba(255, 255, 255, 0.4)',
+                          border: stats.matchesPlayed > 0 ? '1px solid rgba(0, 255, 136, 0.35)' : '1px solid rgba(255, 255, 255, 0.1)'
+                        }}
+                      >
+                        {stats.matchesPlayed} {stats.matchesPlayed > 1 ? 'matchs' : 'match'}
+                      </span>
+                    </div>
+
+                    <div 
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '50%',
+                        background: isExpanded ? 'var(--primary)' : 'rgba(255,255,255,0.06)',
+                        color: isExpanded ? '#000' : 'rgba(255,255,255,0.6)',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Unfolded Details Panel (Accordion Content) */}
+                {isExpanded && (
+                  <div 
+                    style={{
+                      padding: '1.25rem',
+                      background: 'rgba(0, 0, 0, 0.3)',
+                      borderTop: '1px solid rgba(0, 240, 255, 0.15)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '1.25rem'
+                    }}
+                  >
+                    {/* Summary row */}
+                    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                      <div style={{ flex: '1 1 200px', background: 'rgba(0, 240, 255, 0.06)', border: '1px solid rgba(0, 240, 255, 0.2)', borderRadius: '6px', padding: '0.75rem 1rem' }}>
+                        <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '1px', opacity: 0.7, display: 'block' }}>
+                          Total Matchs Joués
+                        </span>
+                        <span style={{ fontSize: '1.5rem', fontWeight: '900', color: 'var(--primary)', lineHeight: 1.2 }}>
+                          {stats.matchesPlayed}
                         </span>
                       </div>
-                      <p className="text-xs opacity-70">
-                        Niveau évalué : <strong className="text-primary">{activeStats.player.level} / 10</strong>
-                      </p>
+
+                      <div style={{ flex: '1 1 200px', background: 'rgba(0, 255, 136, 0.06)', border: '1px solid rgba(0, 255, 136, 0.2)', borderRadius: '6px', padding: '0.75rem 1rem' }}>
+                        <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '1px', opacity: 0.7, display: 'block' }}>
+                          Coéquipiers distincts
+                        </span>
+                        <span style={{ fontSize: '1.5rem', fontWeight: '900', color: '#00ff88', lineHeight: 1.2 }}>
+                          {teammatesList.length}
+                        </span>
+                      </div>
+
+                      <div style={{ flex: '1 1 200px', background: 'rgba(255, 0, 85, 0.06)', border: '1px solid rgba(255, 0, 85, 0.2)', borderRadius: '6px', padding: '0.75rem 1rem' }}>
+                        <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '1px', opacity: 0.7, display: 'block' }}>
+                          Adversaires affrontés
+                        </span>
+                        <span style={{ fontSize: '1.5rem', fontWeight: '900', color: '#ff4081', lineHeight: 1.2 }}>
+                          {opponentsList.length}
+                        </span>
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Big Counter */}
-                  <div className="flex gap-4">
-                    <div 
-                      className="px-5 py-3 rounded-lg text-center"
-                      style={{ background: 'rgba(0, 240, 255, 0.08)', border: '1px solid rgba(0, 240, 255, 0.25)' }}
-                    >
-                      <span className="text-3xl font-black glow-text text-primary block leading-none mb-1">
-                        {activeStats.matchesPlayed}
-                      </span>
-                      <span className="text-[10px] font-bold tracking-widest uppercase opacity-75">
-                        Matchs Joués
-                      </span>
-                    </div>
-
-                    <div 
-                      className="px-5 py-3 rounded-lg text-center"
-                      style={{ background: 'rgba(255, 0, 85, 0.08)', border: '1px solid rgba(255, 0, 85, 0.25)' }}
-                    >
-                      <span className="text-3xl font-black glow-text text-secondary block leading-none mb-1">
-                        {sortedTeammates.length}
-                      </span>
-                      <span className="text-[10px] font-bold tracking-widest uppercase opacity-75">
-                        Coéquipiers
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Synergies Grid: Teammates VS Opponents */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* 1. Teammates (Dans sa team) */}
-                <div className="eva-card p-5 border border-primary/20">
-                  <div className="flex items-center justify-between mb-4 pb-2 border-b border-primary/20">
-                    <h3 className="text-sm font-bold text-primary flex items-center gap-2 tracking-wider">
-                      <Shield size={16} /> COÉQUIPIERS ({sortedTeammates.length})
-                    </h3>
-                    <span className="text-[11px] opacity-60">Dans la même équipe</span>
-                  </div>
-
-                  {sortedTeammates.length === 0 ? (
-                    <p className="text-center py-8 opacity-40 text-xs italic">
-                      N'a pas encore joué en équipe sur cette session.
-                    </p>
-                  ) : (
-                    <div className="flex flex-col gap-2 max-h-[380px] overflow-y-auto pr-1">
-                      {sortedTeammates.map(tm => {
-                        const ratio = Math.round((tm.count / maxTeammateCount) * 100);
-                        return (
-                          <div 
-                            key={tm.id}
-                            className="p-2.5 rounded bg-white/5 border border-white/5 hover:border-primary/30 transition-all"
-                          >
-                            <div className="flex items-center justify-between mb-1.5">
-                              <div className="flex items-center gap-2">
-                                {tm.avatar ? (
-                                  <img 
-                                    src={tm.avatar} 
-                                    alt={tm.name} 
-                                    style={{ width: '22px', height: '22px', borderRadius: '50%', objectFit: 'cover' }} 
-                                  />
-                                ) : (
-                                  <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px' }}>
-                                    {tm.name.substring(0, 2).toUpperCase()}
-                                  </div>
-                                )}
-                                <span className="font-bold text-xs">{tm.name}</span>
-                              </div>
-
-                              <span 
-                                className="px-2 py-0.5 rounded text-xs font-bold"
-                                style={{
-                                  background: 'rgba(0, 240, 255, 0.15)',
-                                  color: '#00f0ff',
-                                  border: '1px solid rgba(0, 240, 255, 0.3)'
-                                }}
-                              >
-                                {tm.count} {tm.count > 1 ? 'fois' : 'fois'}
-                              </span>
-                            </div>
-
-                            {/* Frequency gauge bar */}
-                            <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
-                              <div 
-                                className="h-full rounded-full" 
-                                style={{ 
-                                  width: `${ratio}%`, 
-                                  background: 'linear-gradient(90deg, #00f0ff, #00ff88)' 
-                                }}
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-
-                {/* 2. Opponents (Contre qui il a joué) */}
-                <div className="eva-card p-5 border border-secondary/20">
-                  <div className="flex items-center justify-between mb-4 pb-2 border-b border-secondary/20">
-                    <h3 className="text-sm font-bold text-secondary flex items-center gap-2 tracking-wider">
-                      <Swords size={16} /> ADVERSAIRES ({sortedOpponents.length})
-                    </h3>
-                    <span className="text-[11px] opacity-60">Équipe d'en face</span>
-                  </div>
-
-                  {sortedOpponents.length === 0 ? (
-                    <p className="text-center py-8 opacity-40 text-xs italic">
-                      N'a pas encore affronté d'adversaires sur cette session.
-                    </p>
-                  ) : (
-                    <div className="flex flex-col gap-2 max-h-[380px] overflow-y-auto pr-1">
-                      {sortedOpponents.map(opp => {
-                        const ratio = Math.round((opp.count / maxOpponentCount) * 100);
-                        return (
-                          <div 
-                            key={opp.id}
-                            className="p-2.5 rounded bg-white/5 border border-white/5 hover:border-secondary/30 transition-all"
-                          >
-                            <div className="flex items-center justify-between mb-1.5">
-                              <div className="flex items-center gap-2">
-                                {opp.avatar ? (
-                                  <img 
-                                    src={opp.avatar} 
-                                    alt={opp.name} 
-                                    style={{ width: '22px', height: '22px', borderRadius: '50%', objectFit: 'cover' }} 
-                                  />
-                                ) : (
-                                  <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px' }}>
-                                    {opp.name.substring(0, 2).toUpperCase()}
-                                  </div>
-                                )}
-                                <span className="font-bold text-xs">{opp.name}</span>
-                              </div>
-
-                              <span 
-                                className="px-2 py-0.5 rounded text-xs font-bold"
-                                style={{
-                                  background: 'rgba(255, 0, 85, 0.15)',
-                                  color: '#ff4081',
-                                  border: '1px solid rgba(255, 0, 85, 0.3)'
-                                }}
-                              >
-                                {opp.count} {opp.count > 1 ? 'fois' : 'fois'}
-                              </span>
-                            </div>
-
-                            {/* Frequency gauge bar */}
-                            <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
-                              <div 
-                                className="h-full rounded-full" 
-                                style={{ 
-                                  width: `${ratio}%`, 
-                                  background: 'linear-gradient(90deg, #ff0055, #ff4081)' 
-                                }}
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Match Log for this player */}
-              <div className="eva-card p-5">
-                <h3 className="text-sm font-bold opacity-80 mb-4 flex items-center gap-2">
-                  <Calendar size={16} className="text-primary" />
-                  Détail des Matchs disputés par {activeStats.player.name} ({activeStats.matches.length})
-                </h3>
-
-                {activeStats.matches.length === 0 ? (
-                  <p className="text-center py-6 opacity-40 text-xs italic">Aucun match joué.</p>
-                ) : (
-                  <div className="flex flex-col gap-3 max-h-[300px] overflow-y-auto pr-1">
-                    {activeStats.matches.map((m, idx) => (
-                      <div 
-                        key={m.matchId || idx}
-                        className="p-3 rounded bg-white/5 border border-white/5 flex flex-wrap items-center justify-between gap-3 text-xs"
-                      >
-                        <div className="flex items-center gap-3">
-                          <span 
-                            className="px-2 py-1 rounded font-bold text-[10px] tracking-wider uppercase"
-                            style={{
-                              background: m.teamColor === 'Bleue' ? 'rgba(0, 240, 255, 0.15)' : 'rgba(255, 0, 85, 0.15)',
-                              color: m.teamColor === 'Bleue' ? '#00f0ff' : '#ff4081',
-                              border: m.teamColor === 'Bleue' ? '1px solid rgba(0, 240, 255, 0.3)' : '1px solid rgba(255, 0, 85, 0.3)'
-                            }}
-                          >
-                            Équipe {m.teamColor}
+                    {/* Synergies: Two columns side-by-side */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+                      {/* Column 1: Teammates (Dans sa team) */}
+                      <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(0, 240, 255, 0.2)', borderRadius: '6px', padding: '1rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', paddingBottom: '0.5rem', borderBottom: '1px solid rgba(0, 240, 255, 0.2)' }}>
+                          <span style={{ fontWeight: 'bold', fontSize: '0.85rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.4rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                            <Shield size={16} /> Dans sa team ({teammatesList.length})
                           </span>
-                          <span className="opacity-50 text-[11px]">{m.source}</span>
-                          {m.date && (
-                            <span className="opacity-40 text-[11px]">
-                              {new Date(m.date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                          )}
+                          <span style={{ fontSize: '0.7rem', opacity: 0.5 }}>Même équipe</span>
                         </div>
 
-                        <div className="flex items-center gap-4 text-[11px]">
-                          <div>
-                            <span className="opacity-50 mr-1">Coéquipiers:</span>
-                            <span className="font-semibold text-primary">
-                              {m.myTeam.filter(p => p.id !== activeStats.player.id).map(p => p.name).join(', ') || 'Seul'}
-                            </span>
+                        {teammatesList.length === 0 ? (
+                          <p style={{ textAlign: 'center', padding: '1rem 0', fontSize: '0.8rem', opacity: 0.5, fontStyle: 'italic', margin: 0 }}>
+                            Aucun coéquipier enregistré.
+                          </p>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '300px', overflowY: 'auto', paddingRight: '0.25rem' }}>
+                            {teammatesList.map(tm => {
+                              const pct = Math.round((tm.count / maxTeammate) * 100);
+                              return (
+                                <div 
+                                  key={tm.id}
+                                  style={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '0.35rem',
+                                    padding: '0.5rem 0.6rem',
+                                    background: 'rgba(255,255,255,0.04)',
+                                    borderRadius: '4px',
+                                    border: '1px solid rgba(255,255,255,0.05)'
+                                  }}
+                                >
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                      {tm.avatar ? (
+                                        <img src={tm.avatar} alt={tm.name} style={{ width: '22px', height: '22px', borderRadius: '50%', objectFit: 'cover' }} />
+                                      ) : (
+                                        <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px' }}>
+                                          {tm.name.substring(0, 2).toUpperCase()}
+                                        </div>
+                                      )}
+                                      <span style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>{tm.name}</span>
+                                    </div>
+                                    <span 
+                                      style={{
+                                        fontSize: '0.75rem',
+                                        fontWeight: 'bold',
+                                        padding: '0.15rem 0.5rem',
+                                        borderRadius: '3px',
+                                        background: 'rgba(0, 240, 255, 0.15)',
+                                        color: '#00f0ff',
+                                        border: '1px solid rgba(0, 240, 255, 0.3)'
+                                      }}
+                                    >
+                                      {tm.count} {tm.count > 1 ? 'fois ensemble' : 'fois'}
+                                    </span>
+                                  </div>
+                                  {/* Progress bar */}
+                                  <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px', overflow: 'hidden' }}>
+                                    <div style={{ width: `${pct}%`, height: '100%', background: 'linear-gradient(90deg, #00f0ff, #00ff88)', borderRadius: '2px' }} />
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
-                          <div>
-                            <span className="opacity-50 mr-1">Adversaires:</span>
-                            <span className="font-semibold text-secondary">
-                              {m.enemyTeam.map(p => p.name).join(', ')}
-                            </span>
+                        )}
+                      </div>
+
+                      {/* Column 2: Opponents (Contre qui il a joué) */}
+                      <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255, 0, 85, 0.2)', borderRadius: '6px', padding: '1rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', paddingBottom: '0.5rem', borderBottom: '1px solid rgba(255, 0, 85, 0.2)' }}>
+                          <span style={{ fontWeight: 'bold', fontSize: '0.85rem', color: 'var(--secondary)', display: 'flex', alignItems: 'center', gap: '0.4rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                            <Swords size={16} /> Adversaires affrontés ({opponentsList.length})
+                          </span>
+                          <span style={{ fontSize: '0.7rem', opacity: 0.5 }}>Équipe adverse</span>
+                        </div>
+
+                        {opponentsList.length === 0 ? (
+                          <p style={{ textAlign: 'center', padding: '1rem 0', fontSize: '0.8rem', opacity: 0.5, fontStyle: 'italic', margin: 0 }}>
+                            Aucun adversaire affronté.
+                          </p>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '300px', overflowY: 'auto', paddingRight: '0.25rem' }}>
+                            {opponentsList.map(opp => {
+                              const pct = Math.round((opp.count / maxOpponent) * 100);
+                              return (
+                                <div 
+                                  key={opp.id}
+                                  style={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '0.35rem',
+                                    padding: '0.5rem 0.6rem',
+                                    background: 'rgba(255,255,255,0.04)',
+                                    borderRadius: '4px',
+                                    border: '1px solid rgba(255,255,255,0.05)'
+                                  }}
+                                >
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                      {opp.avatar ? (
+                                        <img src={opp.avatar} alt={opp.name} style={{ width: '22px', height: '22px', borderRadius: '50%', objectFit: 'cover' }} />
+                                      ) : (
+                                        <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px' }}>
+                                          {opp.name.substring(0, 2).toUpperCase()}
+                                        </div>
+                                      )}
+                                      <span style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>{opp.name}</span>
+                                    </div>
+                                    <span 
+                                      style={{
+                                        fontSize: '0.75rem',
+                                        fontWeight: 'bold',
+                                        padding: '0.15rem 0.5rem',
+                                        borderRadius: '3px',
+                                        background: 'rgba(255, 0, 85, 0.15)',
+                                        color: '#ff4081',
+                                        border: '1px solid rgba(255, 0, 85, 0.3)'
+                                      }}
+                                    >
+                                      {opp.count} {opp.count > 1 ? 'fois affronté' : 'fois'}
+                                    </span>
+                                  </div>
+                                  {/* Progress bar */}
+                                  <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px', overflow: 'hidden' }}>
+                                    <div style={{ width: `${pct}%`, height: '100%', background: 'linear-gradient(90deg, #ff0055, #ff4081)', borderRadius: '2px' }} />
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Detailed Match list for this player */}
+                    {stats.matches.length > 0 && (
+                      <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', padding: '0.85rem 1rem' }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 'bold', opacity: 0.7, textTransform: 'uppercase', letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.6rem' }}>
+                          <Calendar size={14} /> Historique des {stats.matches.length} matchs joués
+                        </span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', maxHeight: '200px', overflowY: 'auto' }}>
+                          {stats.matches.map((m, mIdx) => (
+                            <div 
+                              key={m.matchId || mIdx}
+                              style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                flexWrap: 'wrap',
+                                gap: '0.5rem',
+                                padding: '0.4rem 0.6rem',
+                                background: 'rgba(255,255,255,0.03)',
+                                borderRadius: '4px',
+                                fontSize: '0.75rem'
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span 
+                                  style={{
+                                    padding: '0.1rem 0.4rem',
+                                    borderRadius: '3px',
+                                    fontSize: '0.65rem',
+                                    fontWeight: 'bold',
+                                    textTransform: 'uppercase',
+                                    background: m.teamColor === 'Bleue' ? 'rgba(0, 240, 255, 0.15)' : 'rgba(255, 0, 85, 0.15)',
+                                    color: m.teamColor === 'Bleue' ? '#00f0ff' : '#ff4081',
+                                    border: m.teamColor === 'Bleue' ? '1px solid rgba(0, 240, 255, 0.3)' : '1px solid rgba(255, 0, 85, 0.3)'
+                                  }}
+                                >
+                                  Équipe {m.teamColor}
+                                </span>
+                                <span style={{ opacity: 0.5, fontSize: '0.7rem' }}>{m.source}</span>
+                                {m.date && (
+                                  <span style={{ opacity: 0.4, fontSize: '0.7rem' }}>
+                                    {new Date(m.date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                )}
+                              </div>
+
+                              <div style={{ display: 'flex', gap: '1rem', fontSize: '0.72rem' }}>
+                                <div>
+                                  <span style={{ opacity: 0.5, marginRight: '0.25rem' }}>Avec :</span>
+                                  <span style={{ color: 'var(--primary)', fontWeight: 'bold' }}>
+                                    {m.myTeam.filter(p => p.id !== player.id).map(p => p.name).join(', ') || 'Seul'}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span style={{ opacity: 0.5, marginRight: '0.25rem' }}>Contre :</span>
+                                  <span style={{ color: 'var(--secondary)', fontWeight: 'bold' }}>
+                                    {m.enemyTeam.map(p => p.name).join(', ')}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                    ))}
+                    )}
                   </div>
                 )}
               </div>
-            </div>
-          )}
+            );
+          })}
         </div>
-      </div>
+      )}
     </div>
   );
 }
