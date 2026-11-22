@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { UserPlus, Trash2, Edit2, Check, Image as ImageIcon, CheckCircle2, XCircle } from 'lucide-react';
+import { UserPlus, Trash2, Edit2, Check, Image as ImageIcon, PauseCircle, PlayCircle } from 'lucide-react';
 
 function PlayerList({ players, onAdd, onUpdate, onDelete, isAdmin }) {
   const [newName, setNewName] = useState('');
@@ -107,7 +107,7 @@ function PlayerList({ players, onAdd, onUpdate, onDelete, isAdmin }) {
           <div>
             <h2 className="mb-1">Joueurs Enregistrés ({players.length})</h2>
             <p className="text-xs opacity-70">
-              Sélectionnez les joueurs qui participent à cet événement.
+              Gérez les joueurs actifs ou mettez en pause ceux qui ne sont pas encore arrivés.
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -119,7 +119,7 @@ function PlayerList({ players, onAdd, onUpdate, onDelete, isAdmin }) {
                 border: activeCount >= 8 ? '1px solid rgba(0, 255, 136, 0.3)' : '1px solid rgba(255, 0, 85, 0.3)'
               }}
             >
-              👥 {activeCount} Présents ce soir
+              👥 {activeCount} Prêts à jouer
             </span>
             {isAdmin && (
               <div className="flex gap-2">
@@ -127,17 +127,17 @@ function PlayerList({ players, onAdd, onUpdate, onDelete, isAdmin }) {
                   onClick={() => toggleAll(true)}
                   className="eva-button"
                   style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', minWidth: 'auto' }}
-                  title="Marquer tous les joueurs présents"
+                  title="Activer tous les joueurs"
                 >
-                  <CheckCircle2 size={14} /> Tous présents
+                  <PlayCircle size={14} /> Activer tous
                 </button>
                 <button 
                   onClick={() => toggleAll(false)}
                   className="eva-button secondary"
                   style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', minWidth: 'auto' }}
-                  title="Marquer tous les joueurs absents"
+                  title="Mettre tous les joueurs en pause"
                 >
-                  <XCircle size={14} /> Tous absents
+                  <PauseCircle size={14} /> Tous en pause
                 </button>
               </div>
             )}
@@ -151,7 +151,7 @@ function PlayerList({ players, onAdd, onUpdate, onDelete, isAdmin }) {
               <thead>
                 <tr>
                   <th>Nom</th>
-                  <th>Présence</th>
+                  <th>Statut</th>
                   {isAdmin && <th>Niveau</th>}
                   <th>Matchs Joués</th>
                   <th className="text-right">Actions</th>
@@ -162,9 +162,9 @@ function PlayerList({ players, onAdd, onUpdate, onDelete, isAdmin }) {
                   <tr 
                     key={player.id} 
                     style={{ 
-                      opacity: player.isPaused ? 0.5 : 1,
-                      backgroundColor: player.isPaused ? 'rgba(255, 0, 85, 0.03)' : 'transparent',
-                      transition: 'opacity 0.2s'
+                      opacity: player.isPaused ? 0.6 : 1,
+                      backgroundColor: player.isPaused ? 'rgba(255, 0, 85, 0.05)' : 'transparent',
+                      transition: 'all 0.2s'
                     }}
                   >
                     <td className="font-bold">
@@ -193,28 +193,37 @@ function PlayerList({ players, onAdd, onUpdate, onDelete, isAdmin }) {
                         <button
                           type="button"
                           onClick={() => onUpdate(player.id, { isPaused: !player.isPaused })}
-                          className={`px-3 py-1 rounded text-xs font-bold transition-all flex items-center gap-1.5 ${
+                          className={`px-3 py-1.5 rounded text-xs font-bold transition-all flex items-center gap-1.5 ${
                             player.isPaused 
-                              ? 'bg-red-500/15 text-red-400 border border-red-500/30 hover:bg-red-500/25' 
-                              : 'bg-green-500/20 text-green-400 border border-green-500/40 hover:bg-green-500/30'
+                              ? 'hover:scale-105' 
+                              : 'hover:scale-105'
                           }`}
                           style={{
                             cursor: 'pointer',
-                            textShadow: player.isPaused ? 'none' : '0 0 8px rgba(0,255,136,0.4)'
+                            backgroundColor: player.isPaused ? 'rgba(255, 0, 85, 0.2)' : 'rgba(0, 255, 136, 0.15)',
+                            color: player.isPaused ? '#ff4081' : '#00ff88',
+                            border: player.isPaused ? '1px solid rgba(255, 0, 85, 0.5)' : '1px solid rgba(0, 255, 136, 0.4)',
+                            boxShadow: player.isPaused ? '0 0 10px rgba(255, 0, 85, 0.25)' : '0 0 10px rgba(0, 255, 136, 0.2)',
+                            letterSpacing: '1px'
                           }}
-                          title={player.isPaused ? "Cliquer pour inclure ce joueur dans l'événement" : "Cliquer pour exclure ce joueur de l'événement"}
+                          title={player.isPaused ? "Joueur en pause (pas encore arrivé). Cliquer pour ACTIVER dès son arrivée." : "Joueur actif (en jeu). Cliquer pour METTRE EN PAUSE."}
                         >
                           {player.isPaused ? (
-                            <><XCircle size={13} /> Absent</>
+                            <><PlayCircle size={14} /> EN PAUSE</>
                           ) : (
-                            <><CheckCircle2 size={13} /> Présent</>
+                            <><PauseCircle size={14} /> ACTIF</>
                           )}
                         </button>
                       ) : (
-                        <span className={`text-xs px-2.5 py-1 rounded font-bold ${
-                          player.isPaused ? 'text-red-400 bg-red-500/10' : 'text-green-400 bg-green-500/15'
-                        }`}>
-                          {player.isPaused ? 'Absent' : 'Présent'}
+                        <span 
+                          className="text-xs px-2.5 py-1 rounded font-bold tracking-wider inline-flex items-center gap-1"
+                          style={{
+                            backgroundColor: player.isPaused ? 'rgba(255, 0, 85, 0.15)' : 'rgba(0, 255, 136, 0.15)',
+                            color: player.isPaused ? '#ff4081' : '#00ff88',
+                            border: player.isPaused ? '1px solid rgba(255, 0, 85, 0.3)' : '1px solid rgba(0, 255, 136, 0.3)'
+                          }}
+                        >
+                          {player.isPaused ? 'EN PAUSE' : 'ACTIF'}
                         </span>
                       )}
                     </td>
