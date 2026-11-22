@@ -544,12 +544,9 @@ function MatchMaker({
 
                   return (
                     <div className="mt-4 pt-3 border-t border-white/10">
-                      <div className="flex items-center justify-between mb-2.5 text-xs font-bold tracking-wider opacity-80 flex-wrap gap-2">
+                      <div className="flex items-center gap-2 mb-2.5 text-xs font-bold tracking-wider opacity-80">
                         <span className="text-secondary flex items-center gap-1.5">
-                          ⏳ SUR LE BANC ({benchPlayers.length})
-                        </span>
-                        <span className="text-[11px] opacity-50 font-normal">
-                          Attente consécutive (ce match inclus)
+                          ⏳ SUR LE BANC ({benchPlayers.length}) :
                         </span>
                       </div>
                       <div className="flex flex-wrap gap-2">
