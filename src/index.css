@@ -122,6 +122,7 @@ h1, h2, h3, h4, h5, h6 {
   text-shadow: 0 0 10px rgba(255, 0, 85, 0.5);
 }
 .flex { display: flex; }
+.flex-wrap { flex-wrap: wrap; }
 .flex-col { display: flex; flex-direction: column; }
 .items-center { align-items: center; }
 .justify-between { justify-content: space-between; }

@@ -551,13 +551,24 @@ function MatchMaker({
                   const sortedBench = [...benchPlayers].sort((a, b) => (b.consecutiveBench || 0) - (a.consecutiveBench || 0));
 
                   return (
-                    <div className="mt-4 pt-3 border-t border-white/10">
+                    <div className="mt-4 pt-3 border-t border-white/10" style={{ maxWidth: '100%', overflowX: 'hidden' }}>
                       <div className="flex items-center gap-2 mb-2.5 text-xs font-bold tracking-wider opacity-80">
                         <span className="text-secondary flex items-center gap-1.5">
                           ⏳ SUR LE BANC ({benchPlayers.length}) :
                         </span>
                       </div>
-                      <div className="flex flex-wrap gap-2">
+                      <div 
+                        style={{ 
+                          display: 'flex', 
+                          flexWrap: 'wrap', 
+                          gap: '0.5rem',
+                          maxHeight: '180px',
+                          overflowY: 'auto',
+                          overflowX: 'hidden',
+                          width: '100%',
+                          paddingRight: '0.25rem'
+                        }}
+                      >
                         {sortedBench.map(bp => {
                           const waitCount = (bp.consecutiveBench || 0) + 1;
                           const isHighWait = waitCount >= 2;
