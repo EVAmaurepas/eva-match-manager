@@ -6,6 +6,7 @@ import Archives from './components/Archives';
 import DoubleArena from './components/DoubleArena';
 import Login from './components/Login';
 import { Gamepad2, Users, History, Download, Upload, LogOut, Swords } from 'lucide-react';
+import { RECOVERED_PLAYERS, RECOVERED_AVATARS_BY_NAME } from './data/defaultPlayers';
 
 // Helper to reconstruct histories and player stats from completed matches
 const rebuildStatsFromHistory = (currentPlayers, completedMatches) => {
@@ -144,13 +145,20 @@ function App() {
       let loadedPlayers = stateData.players || [];
       const savedPlayers = localStorage.getItem('eva-players');
       if (!stateData.players && savedPlayers) {
-        loadedPlayers = JSON.parse(savedPlayers);
+        try {
+          loadedPlayers = JSON.parse(savedPlayers);
+        } catch (_) {}
+      }
+      if (!loadedPlayers || loadedPlayers.length === 0) {
+        loadedPlayers = RECOVERED_PLAYERS;
       }
 
       let loadedHistory = stateData.matchHistory || [];
       const savedHistory = localStorage.getItem('eva-history');
       if (!stateData.matchHistory && savedHistory) {
-        loadedHistory = JSON.parse(savedHistory);
+        try {
+          loadedHistory = JSON.parse(savedHistory);
+        } catch (_) {}
       }
 
       const sanitizedPlayers = loadedPlayers.map(p => ({
@@ -161,7 +169,7 @@ function App() {
         consecutiveBench: p.consecutiveBench ?? 0,
         lastPlayedAt: p.lastPlayedAt ?? 0,
         isPaused: p.isPaused ?? false,
-        avatar: p.avatar
+        avatar: p.avatar || RECOVERED_AVATARS_BY_NAME[(p.name || '').toLowerCase()] || null
       }));
 
       setPlayers(sanitizedPlayers);
@@ -239,6 +247,9 @@ function App() {
       const savedDoubleHistory = localStorage.getItem('eva-double-arena-history');
       
       let loadedPlayers = savedPlayers ? JSON.parse(savedPlayers) : [];
+      if (!loadedPlayers || loadedPlayers.length === 0) {
+        loadedPlayers = RECOVERED_PLAYERS;
+      }
       let loadedHistory = savedHistory ? JSON.parse(savedHistory) : [];
 
       const sanitizedPlayers = loadedPlayers.map(p => ({
@@ -249,7 +260,7 @@ function App() {
         consecutiveBench: p.consecutiveBench ?? 0,
         lastPlayedAt: p.lastPlayedAt ?? 0,
         isPaused: p.isPaused ?? false,
-        avatar: p.avatar
+        avatar: p.avatar || RECOVERED_AVATARS_BY_NAME[(p.name || '').toLowerCase()] || null
       }));
 
       setPlayers(sanitizedPlayers);
