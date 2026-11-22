@@ -257,13 +257,22 @@ function PlayerList({ players, onAdd, onUpdate, onDelete, isAdmin, currentMatch 
                         </td>
                       )}
                       <td>
-                        <div>{player.matchesPlayed}</div>
+                        <div className="font-bold">{player.matchesPlayed}</div>
                         {isPlayingNow ? (
                           <div className="text-xs font-bold mt-0.5 inline-flex items-center gap-1" style={{ fontSize: '0.75rem', color: '#00f0ff' }}>
                             <Gamepad2 size={12} /> En match
                           </div>
                         ) : player.consecutiveBench > 0 && !player.isPaused ? (
-                          <div className="text-xs text-secondary mt-0.5" style={{ fontSize: '0.75rem', opacity: 0.8 }}>
+                          <div 
+                            className="text-xs font-bold mt-0.5 inline-flex items-center gap-1 px-1.5 py-0.5 rounded"
+                            style={{ 
+                              fontSize: '0.72rem', 
+                              backgroundColor: player.consecutiveBench > 1 ? 'rgba(255, 0, 85, 0.25)' : 'rgba(255, 0, 85, 0.12)',
+                              color: '#ff4081',
+                              border: player.consecutiveBench > 1 ? '1px solid rgba(255, 0, 85, 0.5)' : '1px solid rgba(255, 0, 85, 0.25)'
+                            }}
+                            title={`Ce joueur a passé ${player.consecutiveBench} match(s) consécutif(s) sur le banc. L'algorithme lui donne une priorité maximale pour jouer.`}
+                          >
                             ⏳ Banc : {player.consecutiveBench}
                           </div>
                         ) : null}
