@@ -182,15 +182,17 @@ export default function DoubleArena({
     const playerScores = activePlayers.map(p => {
       const pStat = sessionStats[p.id] || { matchesPlayed: 0, consecutiveBench: 0, lastPlayedAt: 0 };
       
-      let timeSince = 120;
+      let timeSince = 45;
       if (pStat.lastPlayedAt) {
         timeSince = Math.max(0, (Date.now() - pStat.lastPlayedAt) / 60000);
       }
 
+      const effectiveGames = (pStat.matchesPlayed || 0) + (p.missedWhilePaused || 0);
+
       const score = 
         10 * pStat.consecutiveBench +
         1 * timeSince -
-        3 * pStat.matchesPlayed +
+        3 * effectiveGames +
         (Math.random() - 0.5);
 
       return {

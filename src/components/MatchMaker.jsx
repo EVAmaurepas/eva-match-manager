@@ -132,6 +132,7 @@ function MatchMaker({
       level: p.level ?? p.skill ?? 5,
       matchesPlayed: p.matchesPlayed ?? p.gamesPlayed ?? 0,
       consecutiveBench: p.consecutiveBench ?? 0,
+      missedWhilePaused: p.missedWhilePaused ?? 0,
       lastPlayedAt: p.lastPlayedAt ?? 0,
       isPaused: p.isPaused ?? false
     }));
@@ -162,7 +163,10 @@ function MatchMaker({
       const matchTime = Date.now();
 
       virtualPlayers.forEach(p => {
-        if (p.isPaused) return;
+        if (p.isPaused) {
+          p.missedWhilePaused = (p.missedWhilePaused || 0) + 1;
+          return;
+        }
         if (participatingIds.includes(p.id)) {
           p.matchesPlayed = (p.matchesPlayed || 0) + 1;
           p.consecutiveBench = 0;
@@ -213,7 +217,7 @@ function MatchMaker({
 
   const getTimeSinceLastMatch = (lastPlayedAt) => {
     if (!lastPlayedAt) {
-      return 120; // 2 hours boost for players who have never played
+      return 45; // Équivalent d'attente d'un tour normal pour un joueur qui commence
     }
     const diffMs = Date.now() - lastPlayedAt;
     const diffMins = diffMs / 60000;
@@ -243,10 +247,11 @@ function MatchMaker({
     // Step 1: Calculate individual score with slight randomization to break ties naturally
     const playerScores = activePlayers.map(p => {
       const timeSince = getTimeSinceLastMatch(p.lastPlayedAt);
+      const effectiveGames = (p.matchesPlayed || 0) + (p.missedWhilePaused || 0);
       const score =
-        W_BENCH * p.consecutiveBench +
+        W_BENCH * (p.consecutiveBench || 0) +
         W_RECENCY * timeSince -
-        W_TOTAL_GAMES * p.matchesPlayed +
+        W_TOTAL_GAMES * effectiveGames +
         (Math.random() - 0.5);
       return { ...p, priorityScore: score };
     });

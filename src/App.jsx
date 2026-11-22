@@ -391,6 +391,7 @@ function App() {
       level: parseInt(level),
       matchesPlayed: 0,
       consecutiveBench: 0,
+      missedWhilePaused: matchHistory.length, // S'il arrive en cours de session, il ne rattrape pas les matchs passés
       lastPlayedAt: 0,
       isPaused: false
     };
@@ -415,7 +416,12 @@ function App() {
 
     // 1. Update player stats
     const updatedPlayers = players.map(p => {
-      if (p.isPaused) return p;
+      if (p.isPaused) {
+        return {
+          ...p,
+          missedWhilePaused: (p.missedWhilePaused || 0) + 1
+        };
+      }
       if (participatingIds.includes(p.id)) {
         return {
           ...p,
@@ -578,6 +584,7 @@ function App() {
         ...p,
         matchesPlayed: 0,
         consecutiveBench: 0,
+        missedWhilePaused: 0,
         lastPlayedAt: 0,
         isPaused: false
       }));
