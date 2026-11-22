@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { UserPlus, Trash2, Edit2, Check, Image as ImageIcon, PauseCircle, PlayCircle } from 'lucide-react';
+import { UserPlus, Trash2, Edit2, Check, Image as ImageIcon, CheckCircle2, XCircle } from 'lucide-react';
 
 function PlayerList({ players, onAdd, onUpdate, onDelete, isAdmin }) {
   const [newName, setNewName] = useState('');
@@ -7,6 +7,14 @@ function PlayerList({ players, onAdd, onUpdate, onDelete, isAdmin }) {
   const [editingId, setEditingId] = useState(null);
   const [editLevel, setEditLevel] = useState('');
   const [editName, setEditName] = useState('');
+
+  const toggleAll = (active) => {
+    players.forEach(p => {
+      onUpdate(p.id, { isPaused: !active });
+    });
+  };
+
+  const activeCount = players.filter(p => !p.isPaused).length;
 
   const handleAdd = (e) => {
     e.preventDefault();
@@ -95,7 +103,46 @@ function PlayerList({ players, onAdd, onUpdate, onDelete, isAdmin }) {
       )}
 
       <div className="eva-card">
-        <h2 className="mb-4">Joueurs Enregistrés ({players.length})</h2>
+        <div className="flex justify-between items-center mb-4 flex-wrap gap-3">
+          <div>
+            <h2 className="mb-1">Joueurs Enregistrés ({players.length})</h2>
+            <p className="text-xs opacity-70">
+              Sélectionnez les joueurs qui participent à cet événement.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <span 
+              className="text-xs px-3 py-1.5 rounded-full font-bold tracking-wider"
+              style={{
+                background: activeCount >= 8 ? 'rgba(0, 255, 136, 0.15)' : 'rgba(255, 0, 85, 0.15)',
+                color: activeCount >= 8 ? '#00ff88' : '#ff0055',
+                border: activeCount >= 8 ? '1px solid rgba(0, 255, 136, 0.3)' : '1px solid rgba(255, 0, 85, 0.3)'
+              }}
+            >
+              👥 {activeCount} Présents ce soir
+            </span>
+            {isAdmin && (
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => toggleAll(true)}
+                  className="eva-button"
+                  style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', minWidth: 'auto' }}
+                  title="Marquer tous les joueurs présents"
+                >
+                  <CheckCircle2 size={14} /> Tous présents
+                </button>
+                <button 
+                  onClick={() => toggleAll(false)}
+                  className="eva-button secondary"
+                  style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', minWidth: 'auto' }}
+                  title="Marquer tous les joueurs absents"
+                >
+                  <XCircle size={14} /> Tous absents
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
         {players.length === 0 ? (
           <p className="text-center opacity-50 py-4">Aucun joueur dans le roster. Ajoutez-en pour commencer.</p>
         ) : (
@@ -104,6 +151,7 @@ function PlayerList({ players, onAdd, onUpdate, onDelete, isAdmin }) {
               <thead>
                 <tr>
                   <th>Nom</th>
+                  <th>Présence</th>
                   {isAdmin && <th>Niveau</th>}
                   <th>Matchs Joués</th>
                   <th className="text-right">Actions</th>
@@ -111,9 +159,16 @@ function PlayerList({ players, onAdd, onUpdate, onDelete, isAdmin }) {
               </thead>
               <tbody>
                 {players.map(player => (
-                  <tr key={player.id} style={{ backgroundColor: player.isPaused ? 'rgba(255, 0, 85, 0.05)' : 'transparent' }}>
+                  <tr 
+                    key={player.id} 
+                    style={{ 
+                      opacity: player.isPaused ? 0.5 : 1,
+                      backgroundColor: player.isPaused ? 'rgba(255, 0, 85, 0.03)' : 'transparent',
+                      transition: 'opacity 0.2s'
+                    }}
+                  >
                     <td className="font-bold">
-                      <div className={`flex items-center gap-3 ${player.isPaused ? 'opacity-60' : ''}`}>
+                      <div className="flex items-center gap-3">
                         {player.avatar ? (
                           <img src={player.avatar} alt={player.name} style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} />
                         ) : (
@@ -129,19 +184,39 @@ function PlayerList({ players, onAdd, onUpdate, onDelete, isAdmin }) {
                             onChange={(e) => setEditName(e.target.value)}
                           />
                         ) : (
-                          <div className="flex items-center gap-2">
-                            {player.name}
-                            {player.isPaused && (
-                              <span 
-                                className="text-xs px-2 py-0.5 rounded font-bold tracking-wider" 
-                                style={{ backgroundColor: '#ff0055', color: 'white', boxShadow: '0 0 10px rgba(255,0,85,0.4)' }}
-                              >
-                                EN PAUSE
-                              </span>
-                            )}
-                          </div>
+                          <span>{player.name}</span>
                         )}
                       </div>
+                    </td>
+                    <td>
+                      {isAdmin ? (
+                        <button
+                          type="button"
+                          onClick={() => onUpdate(player.id, { isPaused: !player.isPaused })}
+                          className={`px-3 py-1 rounded text-xs font-bold transition-all flex items-center gap-1.5 ${
+                            player.isPaused 
+                              ? 'bg-red-500/15 text-red-400 border border-red-500/30 hover:bg-red-500/25' 
+                              : 'bg-green-500/20 text-green-400 border border-green-500/40 hover:bg-green-500/30'
+                          }`}
+                          style={{
+                            cursor: 'pointer',
+                            textShadow: player.isPaused ? 'none' : '0 0 8px rgba(0,255,136,0.4)'
+                          }}
+                          title={player.isPaused ? "Cliquer pour inclure ce joueur dans l'événement" : "Cliquer pour exclure ce joueur de l'événement"}
+                        >
+                          {player.isPaused ? (
+                            <><XCircle size={13} /> Absent</>
+                          ) : (
+                            <><CheckCircle2 size={13} /> Présent</>
+                          )}
+                        </button>
+                      ) : (
+                        <span className={`text-xs px-2.5 py-1 rounded font-bold ${
+                          player.isPaused ? 'text-red-400 bg-red-500/10' : 'text-green-400 bg-green-500/15'
+                        }`}>
+                          {player.isPaused ? 'Absent' : 'Présent'}
+                        </span>
+                      )}
                     </td>
                     {isAdmin && (
                       <td>
@@ -177,17 +252,6 @@ function PlayerList({ players, onAdd, onUpdate, onDelete, isAdmin }) {
                             <ImageIcon size={18} />
                             <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => handleImageUpload(e, player.id)} />
                           </label>
-                          <button 
-                            onClick={() => onUpdate(player.id, { isPaused: !player.isPaused })} 
-                            className={`transition-colors ${player.isPaused ? 'hover:scale-110' : 'hover:text-white'}`}
-                            style={{ 
-                              color: player.isPaused ? '#00ff88' : 'var(--secondary)',
-                              filter: player.isPaused ? 'drop-shadow(0 0 5px rgba(0,255,136,0.6))' : 'none'
-                            }}
-                            title={player.isPaused ? "Reprendre (Actif)" : "Mettre en pause"}
-                          >
-                            {player.isPaused ? <PlayCircle size={22} /> : <PauseCircle size={18} />}
-                          </button>
                           <button 
                             onClick={() => editingId === player.id ? saveEdit(player.id) : startEdit(player)} 
                             className="text-secondary hover:text-white transition-colors"
