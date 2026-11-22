@@ -719,6 +719,7 @@ function App() {
             onUpdate={updatePlayer}
             onDelete={deletePlayer}
             isAdmin={userRole === 'admin'}
+            currentMatch={upcomingMatches[0]}
           />
         )}
         {activeTab === 'match' && (

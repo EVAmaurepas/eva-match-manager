@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { UserPlus, Trash2, Edit2, Check, Image as ImageIcon, PauseCircle, PlayCircle } from 'lucide-react';
+import { UserPlus, Trash2, Edit2, Check, Image as ImageIcon, PauseCircle, PlayCircle, Gamepad2 } from 'lucide-react';
 
-function PlayerList({ players, onAdd, onUpdate, onDelete, isAdmin }) {
+function PlayerList({ players, onAdd, onUpdate, onDelete, isAdmin, currentMatch }) {
   const [newName, setNewName] = useState('');
   const [newLevel, setNewLevel] = useState('5');
   const [editingId, setEditingId] = useState(null);
@@ -158,102 +158,116 @@ function PlayerList({ players, onAdd, onUpdate, onDelete, isAdmin }) {
                 </tr>
               </thead>
               <tbody>
-                {players.map(player => (
-                  <tr 
-                    key={player.id} 
-                    style={{ 
-                      opacity: player.isPaused ? 0.6 : 1,
-                      backgroundColor: player.isPaused ? 'rgba(255, 0, 85, 0.05)' : 'transparent',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    <td className="font-bold">
-                      <div className="flex items-center gap-3">
-                        {player.avatar ? (
-                          <img src={player.avatar} alt={player.name} style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} />
-                        ) : (
-                          <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}>
-                            {player.name.substring(0, 2).toUpperCase()}
-                          </div>
-                        )}
-                        {editingId === player.id ? (
-                          <input 
-                            type="text"
-                            className="eva-input" style={{ width: '120px', padding: '0.25rem', fontWeight: 'normal' }}
-                            value={editName}
-                            onChange={(e) => setEditName(e.target.value)}
-                          />
-                        ) : (
-                          <span>{player.name}</span>
-                        )}
-                      </div>
-                    </td>
-                    <td>
-                      {isAdmin ? (
-                        <button
-                          type="button"
-                          onClick={() => onUpdate(player.id, { isPaused: !player.isPaused })}
-                          className={`px-3 py-1.5 rounded text-xs font-bold transition-all flex items-center gap-1.5 ${
-                            player.isPaused 
-                              ? 'hover:scale-105' 
-                              : 'hover:scale-105'
-                          }`}
-                          style={{
-                            cursor: 'pointer',
-                            backgroundColor: player.isPaused ? 'rgba(255, 0, 85, 0.2)' : 'rgba(0, 255, 136, 0.15)',
-                            color: player.isPaused ? '#ff4081' : '#00ff88',
-                            border: player.isPaused ? '1px solid rgba(255, 0, 85, 0.5)' : '1px solid rgba(0, 255, 136, 0.4)',
-                            boxShadow: player.isPaused ? '0 0 10px rgba(255, 0, 85, 0.25)' : '0 0 10px rgba(0, 255, 136, 0.2)',
-                            letterSpacing: '1px'
-                          }}
-                          title={player.isPaused ? "Joueur en pause (pas encore arrivé). Cliquer pour ACTIVER dès son arrivée." : "Joueur actif (en jeu). Cliquer pour METTRE EN PAUSE."}
-                        >
-                          {player.isPaused ? (
-                            <><PlayCircle size={14} /> EN PAUSE</>
+                {players.map(player => {
+                  const isPlayingNow = currentMatch && (
+                    currentMatch.team1?.some(p => p.id === player.id) ||
+                    currentMatch.team2?.some(p => p.id === player.id)
+                  );
+
+                  return (
+                    <tr 
+                      key={player.id} 
+                      style={{ 
+                        opacity: player.isPaused ? 0.6 : 1,
+                        backgroundColor: isPlayingNow 
+                          ? 'rgba(0, 240, 255, 0.05)' 
+                          : player.isPaused 
+                            ? 'rgba(255, 0, 85, 0.05)' 
+                            : 'transparent',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <td className="font-bold">
+                        <div className="flex items-center gap-3">
+                          {player.avatar ? (
+                            <img src={player.avatar} alt={player.name} style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} />
                           ) : (
-                            <><PauseCircle size={14} /> ACTIF</>
+                            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}>
+                              {player.name.substring(0, 2).toUpperCase()}
+                            </div>
                           )}
-                        </button>
-                      ) : (
-                        <span 
-                          className="text-xs px-2.5 py-1 rounded font-bold tracking-wider inline-flex items-center gap-1"
-                          style={{
-                            backgroundColor: player.isPaused ? 'rgba(255, 0, 85, 0.15)' : 'rgba(0, 255, 136, 0.15)',
-                            color: player.isPaused ? '#ff4081' : '#00ff88',
-                            border: player.isPaused ? '1px solid rgba(255, 0, 85, 0.3)' : '1px solid rgba(0, 255, 136, 0.3)'
-                          }}
-                        >
-                          {player.isPaused ? 'EN PAUSE' : 'ACTIF'}
-                        </span>
-                      )}
-                    </td>
-                    {isAdmin && (
-                      <td>
-                        {editingId === player.id ? (
-                          <div className="flex items-center gap-2">
+                          {editingId === player.id ? (
                             <input 
-                              type="number" min="1" max="10" 
-                              className="eva-input" style={{ width: '60px', padding: '0.25rem' }}
-                              value={editLevel}
-                              onChange={(e) => setEditLevel(e.target.value)}
+                              type="text"
+                              className="eva-input" style={{ width: '120px', padding: '0.25rem', fontWeight: 'normal' }}
+                              value={editName}
+                              onChange={(e) => setEditName(e.target.value)}
                             />
-                            <button onClick={() => saveEdit(player.id)} className="text-primary hover:text-white">
-                              <Check size={18} />
-                            </button>
-                          </div>
+                          ) : (
+                            <span>{player.name}</span>
+                          )}
+                        </div>
+                      </td>
+                      <td>
+                        {isAdmin ? (
+                          <button
+                            type="button"
+                            onClick={() => onUpdate(player.id, { isPaused: !player.isPaused })}
+                            className={`px-3 py-1.5 rounded text-xs font-bold transition-all flex items-center gap-1.5 ${
+                              player.isPaused 
+                                ? 'hover:scale-105' 
+                                : 'hover:scale-105'
+                            }`}
+                            style={{
+                              cursor: 'pointer',
+                              backgroundColor: player.isPaused ? 'rgba(255, 0, 85, 0.2)' : 'rgba(0, 255, 136, 0.15)',
+                              color: player.isPaused ? '#ff4081' : '#00ff88',
+                              border: player.isPaused ? '1px solid rgba(255, 0, 85, 0.5)' : '1px solid rgba(0, 255, 136, 0.4)',
+                              boxShadow: player.isPaused ? '0 0 10px rgba(255, 0, 85, 0.25)' : '0 0 10px rgba(0, 255, 136, 0.2)',
+                              letterSpacing: '1px'
+                            }}
+                            title={player.isPaused ? "Joueur en pause (pas encore arrivé). Cliquer pour ACTIVER dès son arrivée." : "Joueur actif (en jeu). Cliquer pour METTRE EN PAUSE."}
+                          >
+                            {player.isPaused ? (
+                              <><PlayCircle size={14} /> EN PAUSE</>
+                            ) : (
+                              <><PauseCircle size={14} /> ACTIF</>
+                            )}
+                          </button>
                         ) : (
-                          <span className="text-primary">{player.level} / 10</span>
+                          <span 
+                            className="text-xs px-2.5 py-1 rounded font-bold tracking-wider inline-flex items-center gap-1"
+                            style={{
+                              backgroundColor: player.isPaused ? 'rgba(255, 0, 85, 0.15)' : 'rgba(0, 255, 136, 0.15)',
+                              color: player.isPaused ? '#ff4081' : '#00ff88',
+                              border: player.isPaused ? '1px solid rgba(255, 0, 85, 0.3)' : '1px solid rgba(0, 255, 136, 0.3)'
+                            }}
+                          >
+                            {player.isPaused ? 'EN PAUSE' : 'ACTIF'}
+                          </span>
                         )}
                       </td>
-                    )}
-                    <td>
-                      <div>{player.matchesPlayed}</div>
-                      {player.consecutiveBench > 0 && !player.isPaused && (
-                        <div className="text-xs text-secondary mt-0.5" style={{ fontSize: '0.75rem', opacity: 0.8 }}>
-                          ⏳ Banc : {player.consecutiveBench}
-                        </div>
+                      {isAdmin && (
+                        <td>
+                          {editingId === player.id ? (
+                            <div className="flex items-center gap-2">
+                              <input 
+                                type="number" min="1" max="10" 
+                                className="eva-input" style={{ width: '60px', padding: '0.25rem' }}
+                                value={editLevel}
+                                onChange={(e) => setEditLevel(e.target.value)}
+                              />
+                              <button onClick={() => saveEdit(player.id)} className="text-primary hover:text-white">
+                                <Check size={18} />
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-primary">{player.level} / 10</span>
+                          )}
+                        </td>
                       )}
-                    </td>
+                      <td>
+                        <div>{player.matchesPlayed}</div>
+                        {isPlayingNow ? (
+                          <div className="text-xs font-bold mt-0.5 inline-flex items-center gap-1" style={{ fontSize: '0.75rem', color: '#00f0ff' }}>
+                            <Gamepad2 size={12} /> En match
+                          </div>
+                        ) : player.consecutiveBench > 0 && !player.isPaused ? (
+                          <div className="text-xs text-secondary mt-0.5" style={{ fontSize: '0.75rem', opacity: 0.8 }}>
+                            ⏳ Banc : {player.consecutiveBench}
+                          </div>
+                        ) : null}
+                      </td>
                     <td className="text-right flex gap-2 justify-end items-center" style={{ minHeight: '48px' }}>
                       {isAdmin && (
                         <>
@@ -279,7 +293,8 @@ function PlayerList({ players, onAdd, onUpdate, onDelete, isAdmin }) {
                       )}
                     </td>
                   </tr>
-                ))}
+                );
+              })}
               </tbody>
             </table>
           </div>
