@@ -51,12 +51,11 @@ const rebuildStatsFromHistory = (currentPlayers, completedMatches) => {
     // Update players
     Object.keys(playerMap).forEach(id => {
       const p = playerMap[id];
-      if (p.isPaused) return;
       if (participatingIds.includes(id)) {
         p.matchesPlayed += 1;
         p.consecutiveBench = 0;
         p.lastPlayedAt = matchTime;
-      } else {
+      } else if (!p.isPaused) {
         p.consecutiveBench += 1;
       }
     });
@@ -174,18 +173,8 @@ function App() {
         avatar: p.avatar || RECOVERED_AVATARS_BY_NAME[(p.name || '').toLowerCase()] || null
       }));
 
-      // S'il n'y a aucun match dans l'historique de la session, réinitialise les compteurs de banc et de matchs
-      if (loadedHistory.length === 0) {
-        sanitizedPlayers.forEach(p => {
-          p.matchesPlayed = 0;
-          p.consecutiveBench = 0;
-        });
-      }
-
-      setPlayers(sanitizedPlayers);
-      
       if (stateData.upcomingMatches) setUpcomingMatches(stateData.upcomingMatches);
-      else if (stateData.currentMatch) setUpcomingMatches([stateData.currentMatch]); // migration
+      else if (stateData.currentMatch) setUpcomingMatches([stateData.currentMatch]);
       else {
         const savedMatches = localStorage.getItem('eva-upcoming');
         if (savedMatches) setUpcomingMatches(JSON.parse(savedMatches));
@@ -217,13 +206,21 @@ function App() {
         }
       }
 
-      // Auto-rebuild matrices if we have a match history but no matrices are saved
-      if (!hasLoadedMatrices && loadedHistory.length > 0) {
+      // Synchronise et recalcule TOUJOURS les compteurs de matchs et de banc depuis l'historique officiel des matchs
+      if (loadedHistory.length > 0) {
         const { players: updatedPlayers, presence, team, opponent } = rebuildStatsFromHistory(sanitizedPlayers, loadedHistory);
         setPlayers(updatedPlayers);
-        setPresenceHistory(presence);
-        setTeamHistory(team);
-        setOpponentHistory(opponent);
+        if (!hasLoadedMatrices) {
+          setPresenceHistory(presence);
+          setTeamHistory(team);
+          setOpponentHistory(opponent);
+        }
+      } else {
+        sanitizedPlayers.forEach(p => {
+          p.matchesPlayed = 0;
+          p.consecutiveBench = 0;
+        });
+        setPlayers(sanitizedPlayers);
       }
 
       // 2. Hydrate Double Arena Mode State
@@ -273,19 +270,10 @@ function App() {
         avatar: p.avatar || RECOVERED_AVATARS_BY_NAME[(p.name || '').toLowerCase()] || null
       }));
 
-      // S'il n'y a aucun match dans l'historique de la session, réinitialise les compteurs de banc et de matchs
-      if (loadedHistory.length === 0) {
-        sanitizedPlayers.forEach(p => {
-          p.matchesPlayed = 0;
-          p.consecutiveBench = 0;
-        });
-      }
-
-      setPlayers(sanitizedPlayers);
       if (savedMatches) setUpcomingMatches(JSON.parse(savedMatches));
       setMatchHistory(loadedHistory);
       if (savedArchives) setArchives(JSON.parse(savedArchives));
-      
+
       let hasLoadedMatrices = false;
       if (savedPresence && savedTeam && savedOpponent) {
         setPresenceHistory(JSON.parse(savedPresence));
@@ -294,12 +282,21 @@ function App() {
         hasLoadedMatrices = true;
       }
 
-      if (!hasLoadedMatrices && loadedHistory.length > 0) {
+      // Synchronise et recalcule TOUJOURS les compteurs réels depuis l'historique
+      if (loadedHistory.length > 0) {
         const { players: updatedPlayers, presence, team, opponent } = rebuildStatsFromHistory(sanitizedPlayers, loadedHistory);
         setPlayers(updatedPlayers);
-        setPresenceHistory(presence);
-        setTeamHistory(team);
-        setOpponentHistory(opponent);
+        if (!hasLoadedMatrices) {
+          setPresenceHistory(presence);
+          setTeamHistory(team);
+          setOpponentHistory(opponent);
+        }
+      } else {
+        sanitizedPlayers.forEach(p => {
+          p.matchesPlayed = 0;
+          p.consecutiveBench = 0;
+        });
+        setPlayers(sanitizedPlayers);
       }
 
       if (savedDoubleMatches) setDoubleArenaMatches(JSON.parse(savedDoubleMatches));
