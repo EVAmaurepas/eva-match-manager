@@ -162,9 +162,12 @@ function MatchMaker({
       const participatingIds = [...team1Ids, ...team2Ids];
       const matchTime = Date.now();
 
+      const activeCount = virtualPlayers.filter(p => !p.isPaused).length;
+      const rotationRatio = Math.min(1, 8 / Math.max(8, activeCount || 8));
+
       virtualPlayers.forEach(p => {
         if (p.isPaused) {
-          p.missedWhilePaused = (p.missedWhilePaused || 0) + 1;
+          p.missedWhilePaused = (p.missedWhilePaused || 0) + rotationRatio;
           return;
         }
         if (participatingIds.includes(p.id)) {

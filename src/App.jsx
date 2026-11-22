@@ -385,13 +385,17 @@ function App() {
   }, [doubleArenaMatches, doubleArenaHistory, loading]);
 
   const addPlayer = (name, level) => {
+    const activeCount = players.filter(p => !p.isPaused).length;
+    const ratio = Math.min(1, 8 / Math.max(8, activeCount || 8));
+    const initialMissed = Number((matchHistory.length * ratio).toFixed(2));
+
     const newPlayer = {
       id: Date.now().toString(),
       name,
       level: parseInt(level),
       matchesPlayed: 0,
       consecutiveBench: 0,
-      missedWhilePaused: matchHistory.length, // S'il arrive en cours de session, il ne rattrape pas les matchs passés
+      missedWhilePaused: initialMissed, // Prorata selon le taux de rotation de la session
       lastPlayedAt: 0,
       isPaused: false
     };
@@ -415,11 +419,15 @@ function App() {
     const participatingIds = [...team1Ids, ...team2Ids];
 
     // 1. Update player stats
+    // Ratio de rotation réel (ex: 8 places / 16 joueurs = 0.5 match manqué réel par tour)
+    const activeCount = players.filter(p => !p.isPaused).length;
+    const rotationRatio = Math.min(1, 8 / Math.max(8, activeCount || 8));
+
     const updatedPlayers = players.map(p => {
       if (p.isPaused) {
         return {
           ...p,
-          missedWhilePaused: (p.missedWhilePaused || 0) + 1
+          missedWhilePaused: Number(((p.missedWhilePaused || 0) + rotationRatio).toFixed(2))
         };
       }
       if (participatingIds.includes(p.id)) {
